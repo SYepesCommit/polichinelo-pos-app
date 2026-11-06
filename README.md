@@ -1,10 +1,10 @@
-# 🍔 Polichinelo POS
+# Polichinelo POS
 
 Sistema Punto de Venta (POS) táctil de escritorio desarrollado con **Electron + React + TypeScript + Tailwind CSS + Prisma (SQLite / LibSQL)** para **Polichinelo**.
 
 ---
 
-## ✨ Características Principales
+## Características Principales
 
 - **Toma de Pedidos Táctil (POS)**:
   - Pedidos en **Mesa**, **Para Llevar** y **Domicilio**.
@@ -26,7 +26,7 @@ Sistema Punto de Venta (POS) táctil de escritorio desarrollado con **Electron +
 
 ---
 
-## 🛠️ Comandos de Desarrollo y Empaquetado
+##  Comandos de Desarrollo y Empaquetado
 
 ```bash
 # Instalar dependencias
@@ -44,7 +44,7 @@ pnpm run release
 
 ---
 
-## 🚀 Cómo Publicar una Nueva Versión (Auto-Update)
+## Cómo Publicar una Nueva Versión (Auto-Update)
 
 1. Incrementa la versión en `package.json` (por ejemplo de `"1.0.0"` a `"1.0.1"`).
 2. Haz commit y sube los cambios a GitHub:

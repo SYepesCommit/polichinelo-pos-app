@@ -1,0 +1,1 @@
+# polichinelo-pos-app

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { SidebarProps } from '../types/sidebar'
 import { MENU_ITEMS } from '../config/navigation'
 import logoPolichinelo from '@/assets/logoPoli.png'
+import packageInfo from '../../package.json'
 
 export const Sidebar: React.FC<SidebarProps> = ({ moduloActivo, setModuloActivo }) => {
   const [itemPresionado, setItemPresionado] = useState<string | null>(null)
@@ -60,7 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ moduloActivo, setModuloActivo 
 
       {/* FOOTER: VERSIÓN DISCRETA */}
       <div className="flex flex-col items-center justify-center select-none opacity-40 hover:opacity-100 transition-opacity">
-        <span className="text-[10px] font-bold text-slate-500 tracking-wider">v1.0</span>
+        <span className="text-[10px] font-bold text-slate-500 tracking-wider">v{packageInfo.version}</span>
       </div>
     </aside>
   )

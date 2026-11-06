@@ -23,7 +23,7 @@ export const ProductosFilters: React.FC<ProductosFiltersProps> = ({
       </div>
 
       {/* SELECTOR DE CATEGORÍAS */}
-      <div className="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 w-full md:w-auto overflow-x-auto custom-scrollbar shrink-0">
+      <div className="flex flex-wrap bg-slate-900 p-1.5 rounded-2xl border border-slate-800 w-full md:w-auto gap-1">
         <button
           type="button"
           onClick={() => setCategoriaSeleccionada('TODAS')}

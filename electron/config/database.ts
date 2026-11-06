@@ -4,6 +4,7 @@ import { app } from 'electron'
 import { PrismaClient } from '@prisma/client'
 import { PrismaLibSql } from '@prisma/adapter-libsql'
 import { createClient } from '@libsql/client'
+import { sembrarMenuInicial } from './seedMenu'
 
 export function getDatabasePath(): string {
   // En desarrollo usamos la base de datos de la raíz del proyecto
@@ -179,6 +180,12 @@ export async function ensureDatabaseReady(): Promise<void> {
           { id: 'breb', nombre: 'Bre-B / Transfiya', activo: true },
         ],
       })
+    }
+
+    // Sembrar menú oficial completo (7 categorías, 26 productos e ingredientes) si no hay productos
+    const countProductos = await prisma.producto.count()
+    if (countProductos === 0) {
+      await sembrarMenuInicial(prisma)
     }
   } catch (error) {
     console.error('❌ Error verificando esquema inicial de SQLite:', error)

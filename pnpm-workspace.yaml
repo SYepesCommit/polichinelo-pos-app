@@ -1,0 +1,8 @@
+allowBuilds:
+  '@prisma/engines': false
+  better-sqlite3: false
+  core-js: false
+  electron: false
+  esbuild: false
+  prisma: false
+  workerd: false

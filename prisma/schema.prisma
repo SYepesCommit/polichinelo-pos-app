@@ -1,0 +1,124 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String
+  productos Producto[]
+  creadoEn  DateTime   @default(now())
+}
+
+model Producto {
+  id             Int                   @id @default(autoincrement())
+  categoriaId    Int?
+  categoria      Categoria?            @relation(fields: [categoriaId], references: [id])
+  nombre         String
+  precioVenta    Float
+  imagenUrl      String?
+  costoBase      Float                 @default(0)
+  esEspecial     Boolean               @default(false)
+  activo         Boolean               @default(true)
+  ingredientes   ProductoIngrediente[]
+  pedidoDetalles PedidoDetalle[]
+  creadoEn       DateTime              @default(now())
+  @@index([categoriaId])
+  @@index([activo])
+}
+
+model Ingrediente {
+  id        Int                   @id @default(autoincrement())
+  nombre    String                @unique // Ej: "Queso Cheddar", "Cebolla", "Salsa Tártara"
+  productos ProductoIngrediente[]
+  creadoEn  DateTime              @default(now())
+}
+
+model ProductoIngrediente {
+  productoId    Int
+  ingredienteId Int
+  producto      Producto    @relation(fields: [productoId], references: [id], onDelete: Cascade)
+  ingrediente   Ingrediente @relation(fields: [ingredienteId], references: [id], onDelete: Cascade)
+
+  @@id([productoId, ingredienteId])
+}
+
+model Cliente {
+  id                  Int      @id @default(autoincrement())
+  telefono            String   @unique
+  nombre              String
+  direccion           String
+  referenciaDireccion String?
+  pedidos             Pedido[]
+  creadoEn            DateTime @default(now())
+}
+
+model Pedido {
+  id              Int             @id @default(autoincrement())
+  clienteId       Int?
+  cliente         Cliente?        @relation(fields: [clienteId], references: [id])
+  tipoPedido      String          @default("LLEVAR")
+  detallesDestino String?
+  montoDomicilio  Float?          @default(0)
+  estado          String          @default("REALIZADO")
+  total           Float           @default(0)
+  motivoAnulacion String?
+  sincronizado    Boolean         @default(false)
+  detalles        PedidoDetalle[]
+  pagos           PagoDetalle[]
+  fechaRegistro   DateTime        @default(now())
+  observacionesGenerales String?
+  @@index([fechaRegistro])
+  @@index([tipoPedido])
+  @@index([estado])
+}
+
+model PedidoDetalle {
+  id             Int       @id @default(autoincrement())
+  pedidoId       Int
+  pedido         Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  productoId     Int?
+  producto       Producto? @relation(fields: [productoId], references: [id])
+  cantidad       Int
+  precioUnitario Float
+  observaciones  String?
+  subtotal       Float
+}
+
+model Banco {
+  id     String        @id @default(uuid())
+  nombre String // Ej: "Nequi", "Bancolombia", "Daviplata", "Nu"
+  activo Boolean       @default(true)
+  pagos  PagoDetalle[]
+}
+
+model PagoDetalle {
+  id         Int     @id @default(autoincrement())
+  pedidoId   Int
+  pedido     Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  metodoPago String 
+  monto      Float
+
+  bancoId    String?
+  banco      Banco?  @relation(fields: [bancoId], references: [id])
+}
+
+model Gasto {
+  id            Int      @id @default(autoincrement())
+  descripcion   String
+  monto         Float
+  fechaRegistro DateTime @default(now())
+}
+
+model MetodoPago {
+  id            String  @id @default(uuid())
+  nombre        String // Ej: "Efectivo", "Transferencia", "Bono / Vouché", "Plataforma Domicilio"
+  codigo        String  @unique // Ej: "EFECTIVO", "TRANSFERENCIA", "BONO"
+  requiereBanco Boolean @default(false)
+  activo        Boolean @default(true)
+  orden         Int     @default(0)
+}
+

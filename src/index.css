@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+/* REDIRECCIONAMIENTO DE CLASES Y PALETA DE MARCA (TAILWIND V4) */
+@theme {
+  --color-white: var(--color-text-heading);
+  --color-slate-100: var(--color-text-heading);
+  --color-slate-200: var(--color-text-body);
+  --color-slate-300: var(--color-text-body);
+  --color-slate-400: var(--color-text-muted);
+  --color-slate-500: var(--color-text-muted);
+  --color-slate-600: var(--color-text-subtle);
+  --color-slate-700: var(--color-border-hover);
+  --color-slate-800: var(--color-border);
+  --color-slate-900: var(--color-bg-card);
+  --color-slate-950: var(--color-bg-app);
+
+  /* 🟡 MARCA POLICHINELO: DORADO / AMARILLO VIBRANTE */
+  --color-amber-300: #ffc837; /* Hover brillante */
+  --color-amber-400: #ffb700; /* Dorado principal Polichinelo */
+  --color-amber-500: #e0a100; /* Sombras / Sólido activo */
+
+  /* 🔴 MARCA POLICHINELO: ROJO ESCARLATA */
+  --color-red-500: #d3131b;   /* Rojo Escarlata principal */
+  --color-red-600: #b50f16;   /* Hover rojo */
+  --color-red-900: #520609;   /* Badges / FONDOS sutiles */
+}
+
+/* PALETA MODO DÍA (LIGHT MODE) - CONTRASTE Y PROFUNDIDAD MEJORADOS */
+:root {
+  --color-bg-app: #e2e8f0;       /* Fondo gris metálico suave para crear contraste real */
+  --color-bg-card: #ffffff;      /* Tarjetas en blanco puro que "flotan" sobre el fondo */
+  --color-border: #cbd5e1;       /* Bordes grises bien delimitados */
+  --color-border-hover: #94a3b8; /* Hover en bordes */
+  --color-text-subtle: #64748b;   /* Badge / Etiquetas secundarias */
+  --color-text-muted: #475569;   /* Descripciones y subtítulos */
+  --color-text-body: #1e293b;    /* Texto base legible */
+  --color-text-heading: #0f172a; /* Títulos principales */
+}
+
+/* PALETA MODO NOCHE (DARK MODE - NEUTRO CARBÓN POLICHINELO) */
+html.dark {
+  --color-bg-app: #121212;       /* Fondo carbón neutro profundo */
+  --color-bg-card: #1e1e1e;      /* Tarjetas, modales y sidebar */
+  --color-border: #2c2c2c;       /* Bordes oscuros neutros */
+  --color-border-hover: #3e3e3e; /* Hover en bordes */
+  --color-text-subtle: #475569;   
+  --color-text-muted: #94a3b8;   /* Descripciones y subtítulos claros */
+  --color-text-body: #e2e8f0;    /* Texto base claro */
+  --color-text-heading: #f8fafc; /* Títulos principales (Blanco) */
+}
+
+/* ESTILOS GLOBALES */
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--color-bg-app);
+  color: var(--color-text-heading);
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Sombras suaves para separar tarjetas y paneles en modo día */
+:root .bg-white,
+:root [class*="bg-slate-900"] {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+}
+
+html.dark .bg-white,
+html.dark [class*="bg-slate-900"] {
+  box-shadow: none;
+}
+
+@layer utilities {
+  /* Ocultar barra de scroll para Chrome, Safari, Opera y Electron */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Ocultar barra de scroll para IE, Edge y Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #2c2c2c;
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #ffb700;
+}

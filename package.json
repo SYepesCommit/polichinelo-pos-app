@@ -7,11 +7,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
-    "release": "tsc && vite build && electron-builder --publish always",
+    "build": "prisma generate && tsc && vite build && electron-builder --publish never",
+    "release": "prisma generate && tsc && vite build && electron-builder --publish always",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma generate || exit 0"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

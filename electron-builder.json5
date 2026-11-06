@@ -19,7 +19,12 @@
   },
   "files": [
     "dist",
-    "dist-electron"
+    "dist-electron",
+    {
+      "from": "node_modules/.prisma",
+      "to": "node_modules/.prisma",
+      "filter": ["**/*"]
+    }
   ],
   "mac": {
     "target": [

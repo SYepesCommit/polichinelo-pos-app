@@ -34,7 +34,7 @@
         ]
       }
     ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    "artifactName": "Polichinelo-POS-Windows-${version}-Setup.${ext}"
   },
   "nsis": {
     "oneClick": false,

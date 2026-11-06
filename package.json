@@ -1,5 +1,7 @@
 {
   "name": "polichinelo-pos-app",
+  "description": "Sistema Punto de Venta (POS) táctil para Polichinelo",
+  "author": "Polichinelo",
   "private": true,
   "version": "1.0.0",
   "type": "module",

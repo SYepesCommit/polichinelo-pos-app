@@ -4,7 +4,14 @@
   "appId": "com.polichinelo.pos",
   "asar": true,
   "asarUnpack": [
-    "**/*.node"
+    "**/*.node",
+    "**/node_modules/@libsql/win32-x64-msvc/**"
+  ],
+  "extraFiles": [
+    {
+      "from": "build-resources/dlls",
+      "to": "."
+    }
   ],
   "productName": "Polichinelo POS",
   "publish": [

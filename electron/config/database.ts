@@ -158,6 +158,7 @@ export async function ensureDatabaseReady(): Promise<void> {
     for (const sql of ddlStatements) {
       await rawClient.execute(sql)
     }
+    rawClient.close()
 
     // Sembrar métodos de pago y bancos base si la tabla está vacía
     const countMetodos = await prisma.metodoPago.count()

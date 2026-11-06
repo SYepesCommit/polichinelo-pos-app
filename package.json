@@ -16,6 +16,8 @@
   "dependencies": {
     "@base-ui/react": "^1.9.0",
     "@libsql/client": "^0.18.0",
+    "@libsql/core": "^0.18.0",
+    "@libsql/win32-x64-msvc": "^0.5.29",
     "@prisma/adapter-libsql": "^7.10.1",
     "@prisma/client": "7",
     "class-variance-authority": "^0.7.1",
@@ -25,6 +27,7 @@
     "electron-updater": "^6.8.11",
     "fs-extra": "^11.4.1",
     "jspdf": "^4.2.1",
+    "libsql": "^0.5.29",
     "lucide-react": "^1.59.0",
     "node-thermal-printer": "^4.6.1",
     "react": "^18.2.0",

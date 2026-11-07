@@ -382,7 +382,13 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
 
           <button
             type="button"
-            onClick={onCobrar}
+            onClick={() =>
+              onCobrar(
+                esEfectivo && montoRecibido > 0
+                  ? { montoRecibido, cambio: cambio >= 0 ? cambio : 0 }
+                  : undefined
+              )
+            }
             disabled={!esFormularioValido || cobrando}
             className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold transition shadow-lg disabled:opacity-40 disabled:cursor-not-allowed text-sm uppercase tracking-wider touch-manipulation active:scale-[0.99]"
           >

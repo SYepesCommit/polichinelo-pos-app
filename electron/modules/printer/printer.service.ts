@@ -10,15 +10,110 @@ function escapeHtml(text: string): string {
     .replace(/'/g, '&#039;')
 }
 
+function formatearTelefono(tel?: string): string {
+  if (!tel) return ''
+  const limpio = tel.replace(/\D/g, '')
+  if (limpio.length === 10) {
+    return `${limpio.slice(0, 3)} ${limpio.slice(3, 6)} ${limpio.slice(6)}`
+  }
+  return tel.trim()
+}
+
 export function generarHtmlComanda(datos: any): string {
+  const tituloTipo =
+    datos.tipoPedido === 'DOMICILIO'
+      ? '*** DESPACHO A DOMICILIO ***'
+      : datos.tipoPedido === 'LLEVAR'
+      ? '*** EMPACAR PARA LLEVAR ***'
+      : '*** SERVICIO EN MESA ***'
+
+  const fechaLimpia = datos.hora
+    ? `${datos.fecha.replace(datos.hora, '').trim()} ${datos.hora}`
+    : datos.fecha
+
+  const nombreMostrar =
+    datos.cliente?.nombre?.trim() || datos.detallesDestino?.trim() || 'Cliente'
+
+  const telFormateado = formatearTelefono(datos.cliente?.telefono)
+  const dirTexto = datos.cliente?.direccion?.trim()
+  const refTexto = datos.cliente?.referenciaDireccion?.trim()
+
+  const bloqueClienteHtml = `
+    <div class="cliente-box">
+      <div class="cliente-nombre"><strong>CLIENTE:</strong> ${escapeHtml(nombreMostrar.toUpperCase())}</div>
+      ${
+        datos.tipoPedido === 'DOMICILIO'
+          ? `
+        ${telFormateado ? `<div class="domicilio-tel"><strong>TEL:</strong> ${escapeHtml(telFormateado)}</div>` : ''}
+        ${dirTexto ? `<div class="domicilio-dir"><strong>DIR:</strong> ${escapeHtml(dirTexto.toUpperCase())}</div>` : ''}
+        ${refTexto ? `<div class="domicilio-ref"><strong>REF:</strong> ${escapeHtml(refTexto)}</div>` : ''}
+      `
+          : ''
+      }
+    </div>
+  `
+
   const itemsHtml = (datos.items || [])
     .map((item: any) => {
-      const obsHtml = item.observaciones
-        ? `<div class="item-obs">** NOTA: ${escapeHtml(item.observaciones)}</div>`
-        : ''
-      const adicHtml = (item.adiciones || [])
-        .map((a: string) => `<div class="item-adic">+ ${escapeHtml(a)}</div>`)
-        .join('')
+      const listaSin: string[] = []
+      const listaAdiciones: string[] = []
+      const listaNotas: string[] = []
+
+      if (item.observaciones && item.observaciones.trim()) {
+        const bloques = item.observaciones.split(
+          item.observaciones.includes(' | ') ? ' | ' : '\n'
+        )
+        bloques.forEach((bloque: string) => {
+          if (!bloque.trim()) return
+          const bTrim = bloque.trim()
+          const bUpper = bTrim.toUpperCase()
+
+          if (bUpper.startsWith('SIN:') || bUpper.startsWith('SIN ')) {
+            const contenido = bTrim.replace(/^SIN:\s*/i, '')
+            contenido.split(',').forEach((s) => s.trim() && listaSin.push(s.trim()))
+          } else if (bUpper.startsWith('ADICI') || bUpper.startsWith('EXTRA ')) {
+            const contenido = bTrim
+              .replace(/^ADICI[ÓO]N:\s*/i, '')
+              .replace(/^EXTRA:\s*/i, '')
+            contenido.split(',').forEach((s) => s.trim() && listaAdiciones.push(s.trim()))
+          } else if (bUpper.startsWith('NOTA:')) {
+            const contenido = bTrim.replace(/^NOTA:\s*/i, '')
+            if (contenido.trim()) listaNotas.push(contenido.trim())
+          } else {
+            listaNotas.push(bTrim)
+          }
+        })
+      }
+
+      const sinHtml =
+        listaSin.length > 0
+          ? `<div class="obs-section">
+              <div class="obs-title">[!] SIN (QUITAR):</div>
+              ${listaSin
+                .map((ing) => `<div class="obs-line">- ${escapeHtml(ing.toUpperCase())}</div>`)
+                .join('')}
+            </div>`
+          : ''
+
+      const adicHtml =
+        listaAdiciones.length > 0
+          ? `<div class="obs-section">
+              <div class="obs-title">[+] ADICIONES:</div>
+              ${listaAdiciones
+                .map((ad) => `<div class="obs-line">+ ${escapeHtml(ad)}</div>`)
+                .join('')}
+            </div>`
+          : ''
+
+      const notasItemHtml =
+        listaNotas.length > 0
+          ? `<div class="obs-section">
+              <div class="obs-title">[*] NOTA PLATO:</div>
+              ${listaNotas
+                .map((nt) => `<div class="obs-line">* ${escapeHtml(nt)}</div>`)
+                .join('')}
+            </div>`
+          : ''
 
       return `
         <div class="item-block">
@@ -26,33 +121,13 @@ export function generarHtmlComanda(datos: any): string {
             <span class="col-cant-nombre font-bold">${item.cantidad}x ${escapeHtml(item.nombre)}</span>
             <span class="col-subtotal font-bold">$${Number(item.subtotal || 0).toLocaleString('es-CO')}</span>
           </div>
-          ${obsHtml}
+          ${sinHtml}
           ${adicHtml}
+          ${notasItemHtml}
         </div>
       `
     })
     .join('')
-
-  const fechaLimpia = datos.hora
-    ? `${datos.fecha.replace(datos.hora, '').trim()} ${datos.hora}`
-    : datos.fecha
-
-  const clienteHtml = datos.cliente?.nombre
-    ? `
-      <div class="cliente-info">
-        <div><strong>CLIENTE:</strong> ${escapeHtml(datos.cliente.nombre)}</div>
-        ${datos.cliente.telefono ? `<div><strong>TEL:</strong> ${escapeHtml(datos.cliente.telefono)}</div>` : ''}
-        ${datos.cliente.direccion ? `<div><strong>DIR:</strong> ${escapeHtml(datos.cliente.direccion)}</div>` : ''}
-        ${datos.cliente.referenciaDireccion ? `<div><strong>REF:</strong> ${escapeHtml(datos.cliente.referenciaDireccion)}</div>` : ''}
-      </div>
-      <div class="divider"></div>
-    `
-    : ''
-
-  const mesaHtml =
-    datos.tipoPedido === 'MESA' && datos.mesa
-      ? `<div class="font-bold text-center mesa-box">MESA / UBICACIÓN: #${datos.mesa}</div>`
-      : ''
 
   const subtotalHtml =
     datos.costoDomicilio && datos.costoDomicilio > 0
@@ -68,20 +143,51 @@ export function generarHtmlComanda(datos: any): string {
     `
       : ''
 
-  const metodoPagoHtml = datos.metodoPago
-    ? `<div class="row" style="margin-top: 3px;">
-        <span>FORMA DE PAGO:</span>
-        <span class="font-bold">${datos.metodoPago.toUpperCase()} ${
-        datos.bancoNombre ? '(' + datos.bancoNombre.toUpperCase() + ')' : ''
-      }</span>
-      </div>`
-    : ''
+  const esEfectivo = Boolean(datos.metodoPago?.toUpperCase().includes('EFECTIVO'))
+
+  let metodoPagoHtml = ''
+  if (datos.metodoPago) {
+    if (datos.tipoPedido === 'DOMICILIO' && esEfectivo) {
+      metodoPagoHtml = `
+        <div class="cobro-domicilio">
+          &gt;&gt;&gt; COBRAR EN EFECTIVO: $${Number(datos.total || 0).toLocaleString('es-CO')} &lt;&lt;&lt;
+        </div>
+      `
+    } else {
+      const textoMetodo = datos.bancoNombre
+        ? `${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
+        : datos.metodoPago.toUpperCase()
+      metodoPagoHtml = `
+        <div class="row" style="margin-top: 4px;">
+          <span>PAGO:</span>
+          <span class="font-bold">${escapeHtml(textoMetodo)}</span>
+        </div>
+      `
+    }
+
+    if (esEfectivo && datos.montoRecibido && datos.montoRecibido > 0) {
+      metodoPagoHtml += `
+        <div class="row font-bold" style="margin-top: 2px;">
+          <span>PAGAN CON:</span>
+          <span>$${Number(datos.montoRecibido).toLocaleString('es-CO')}</span>
+        </div>
+        <div class="row font-bold">
+          <span>DEVUELTA / CAMBIO:</span>
+          <span>$${Number(datos.cambio || 0).toLocaleString('es-CO')}</span>
+        </div>
+      `
+    }
+  }
 
   const notasGeneralesHtml =
     datos.observacionesGenerales && datos.observacionesGenerales.trim()
-      ? `<div class="nota-orden"><strong>NOTA GENERAL:</strong> ${escapeHtml(
-          datos.observacionesGenerales.trim()
-        )}</div>`
+      ? `
+        <div class="divider-double"></div>
+        <div class="nota-orden">
+          <strong>NOTA ORDEN:</strong> ${escapeHtml(datos.observacionesGenerales.trim().toUpperCase())}
+        </div>
+        <div class="divider-double"></div>
+      `
       : ''
 
   return `<!DOCTYPE html>
@@ -99,9 +205,9 @@ export function generarHtmlComanda(datos: any): string {
       padding: 0;
     }
     body {
-      width: 72mm;
-      margin: 0 auto;
-      padding: 1mm 0 0 0;
+      width: 70mm;
+      margin: 0;
+      padding: 1mm 2mm 0 2mm;
       font-family: 'Courier New', Courier, monospace;
       font-size: 13px;
       line-height: 1.25;
@@ -114,34 +220,39 @@ export function generarHtmlComanda(datos: any): string {
     .title { font-size: 16px; font-weight: 900; letter-spacing: 0.5px; }
     .subtitle { font-size: 13px; font-weight: 900; margin-top: 2px; }
     .divider { border-bottom: 1px dashed #000; margin: 4px 0; }
+    .divider-double { border-bottom: 2px solid #000; margin: 4px 0; }
     .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
     .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; }
     .col-subtotal { white-space: nowrap; }
-    .item-block { margin-bottom: 4px; }
-    .item-obs { font-size: 11px; font-weight: bold; padding-left: 10px; }
-    .item-adic { font-size: 11px; padding-left: 10px; }
-    .mesa-box { font-size: 14px; margin: 3px 0; }
-    .cliente-info { font-size: 12px; margin: 3px 0; }
+    .cliente-box { margin: 4px 0; }
+    .cliente-nombre { font-size: 13.5px; margin-bottom: 2px; }
+    .domicilio-tel { font-size: 13.5px; margin-bottom: 2px; }
+    .domicilio-dir { font-size: 14.5px; font-weight: 900; margin-bottom: 2px; }
+    .domicilio-ref { font-size: 12.5px; font-weight: bold; }
+    .item-block { margin-bottom: 5px; }
+    .obs-section { padding-left: 8px; margin-top: 2px; font-size: 11.5px; font-weight: bold; }
+    .obs-title { text-decoration: underline; }
+    .obs-line { padding-left: 8px; }
     .total-row { font-size: 15px; font-weight: 900; margin-top: 3px; }
-    .nota-orden { font-size: 12px; margin-top: 3px; }
+    .cobro-domicilio { font-size: 12.5px; font-weight: 900; text-align: center; margin: 4px 0; padding: 2px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+    .nota-orden { font-size: 12.5px; font-weight: bold; margin: 3px 0; }
     .footer-comanda { font-size: 11px; font-weight: bold; text-align: center; margin-top: 5px; }
-    .feed-bottom { height: 16mm; } /* Espacio para que el cortador físico no corte el texto final */
+    .feed-bottom { height: 16mm; }
   </style>
 </head>
 <body>
   <div class="text-center title">POLICHINELO POS</div>
-  <div class="text-center subtitle">*** ${datos.tipoPedido} ***</div>
+  <div class="text-center subtitle">${tituloTipo}</div>
   <div class="divider"></div>
 
   <div class="row">
     <span class="font-bold">ORDEN #${datos.consecutivo}</span>
     <span style="font-size: 11px;">${fechaLimpia}</span>
   </div>
-
-  ${mesaHtml}
   <div class="divider"></div>
 
-  ${clienteHtml}
+  ${bloqueClienteHtml}
+  <div class="divider"></div>
 
   <div class="row font-bold" style="font-size: 11px; margin-bottom: 4px;">
     <span>CANT  PRODUCTO</span>

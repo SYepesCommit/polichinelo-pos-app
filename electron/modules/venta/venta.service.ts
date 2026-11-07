@@ -300,21 +300,42 @@ export const ventaService = {
         timeZone: 'America/Bogota',
       })
 
-      const clienteResumen = p.cliente
-        ? {
-            nombre: p.cliente.nombre,
-            telefono: p.cliente.telefono || '',
-            direccion: p.cliente.direccion || '',
-            referenciaDireccion: p.cliente.referenciaDireccion || '',
-          }
-        : p.detallesDestino
-        ? {
-            nombre: p.detallesDestino,
-            telefono: '',
-            direccion: '',
-            referenciaDireccion: '',
-          }
-        : undefined
+      let snapshotDestino: any = null
+      if (typeof p.detallesDestino === 'string' && p.detallesDestino.trim().startsWith('{')) {
+        try {
+          snapshotDestino = JSON.parse(p.detallesDestino)
+        } catch {
+          snapshotDestino = null
+        }
+      }
+
+      const nombreResuelto =
+        snapshotDestino?.nombre ||
+        p.cliente?.nombre ||
+        (typeof p.detallesDestino === 'string' && !p.detallesDestino.trim().startsWith('{')
+          ? p.detallesDestino
+          : '') ||
+        'Cliente'
+
+      const clienteResumen =
+        snapshotDestino || p.cliente
+          ? {
+              nombre: nombreResuelto,
+              telefono: snapshotDestino?.telefono || p.cliente?.telefono || '',
+              direccion: snapshotDestino?.direccion || p.cliente?.direccion || '',
+              referenciaDireccion:
+                snapshotDestino?.referenciaDireccion ||
+                p.cliente?.referenciaDireccion ||
+                '',
+            }
+          : p.detallesDestino
+          ? {
+              nombre: nombreResuelto,
+              telefono: '',
+              direccion: '',
+              referenciaDireccion: '',
+            }
+          : undefined
 
       return {
         id: p.id,
@@ -327,10 +348,10 @@ export const ventaService = {
           hour12: true,
         }),
         tipoPedido: p.tipoPedido,
-        nombreCliente: p.cliente?.nombre || p.detallesDestino || 'Cliente Mostrador',
+        nombreCliente: nombreResuelto,
         cliente: clienteResumen,
         observacionesGenerales: p.observacionesGenerales || undefined,
-        detallesDestino: p.detallesDestino,
+        detallesDestino: nombreResuelto,
         montoDomicilio: Number(p.montoDomicilio || 0),
         montoTotal: Number(p.total),
         metodoPago: primerPago?.metodoPago || 'Efectivo',

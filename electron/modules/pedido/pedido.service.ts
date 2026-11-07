@@ -75,11 +75,21 @@ export const pedidoService = {
           return pagoObj
         })
 
+        const detallesDestinoSnapshot =
+          data.tipoPedido === 'DOMICILIO' && data.clienteData
+            ? JSON.stringify({
+                nombre: data.clienteData.nombre?.trim() || data.detallesDestino || 'Cliente',
+                telefono: data.clienteData.telefono?.trim() || '',
+                direccion: data.clienteData.direccion?.trim() || '',
+                referenciaDireccion: data.clienteData.referenciaDireccion?.trim() || '',
+              })
+            : data.detallesDestino || null
+
         return await tx.pedido.create({
           data: {
             clienteId,
             tipoPedido: data.tipoPedido,
-            detallesDestino: data.detallesDestino || null,
+            detallesDestino: detallesDestinoSnapshot,
             observacionesGenerales: data.observacionesGenerales?.trim() || null,
             montoDomicilio: Number(data.montoDomicilio || 0),
             estado: 'REALIZADO',

@@ -1,14 +1,24 @@
 import jsPDF from 'jspdf'
 import { DatosComandaCocina } from '../types/pos/posView.types'
 
-function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): number {
-  let y = 8
-  const centro = 40
-  const izquierda = 4
-  const derecha = 76
-  const anchoMaximoTexto = 72
+function formatearTelefono(tel?: string): string {
+  if (!tel) return ''
+  const limpio = tel.replace(/\D/g, '')
+  if (limpio.length === 10) {
+    return `${limpio.slice(0, 3)} ${limpio.slice(3, 6)} ${limpio.slice(6)}`
+  }
+  return tel.trim()
+}
 
-  const SEPARADOR = '------------------------------------'
+function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): number {
+  let y = 7
+  const centro = 36
+  const izquierda = 2
+  const derecha = 70
+  const anchoMaximoTexto = 68
+
+  const SEPARADOR = '----------------------------------'
+  const SEPARADOR_DOBLE = '=================================='
 
   const escribirTextoConSalto = (
     texto: string,
@@ -30,22 +40,28 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     return posicionY
   }
 
-  // --- ENCABEZADO ---
+  // --- 1. ENCABEZADO SEGÚN EL TIPO DE ORDEN ---
   doc.setFont('courier', 'bold')
   doc.setFontSize(13)
   doc.text('POLICHINELO POS', centro, y, { align: 'center' })
 
   y += 4.5
-  doc.setFontSize(10.5)
-  doc.text(`*** ${datos.tipoPedido} ***`, centro, y, { align: 'center' })
+  doc.setFontSize(10)
+  const tituloTipo =
+    datos.tipoPedido === 'DOMICILIO'
+      ? '*** DESPACHO A DOMICILIO ***'
+      : datos.tipoPedido === 'LLEVAR'
+      ? '*** EMPACAR PARA LLEVAR ***'
+      : '*** SERVICIO EN MESA ***'
+  doc.text(tituloTipo, centro, y, { align: 'center' })
 
   y += 3.5
   doc.setFontSize(8)
   doc.setFont('courier', 'normal')
   doc.text(SEPARADOR, centro, y, { align: 'center' })
 
-  // --- DATOS DEL PEDIDO (ORDEN, FECHA Y HORA BIEN SEPARADOS) ---
-  y += 4.5
+  // --- 2. ORDEN, FECHA Y HORA ---
+  y += 4.2
   doc.setFont('courier', 'bold')
   doc.setFontSize(9.5)
   doc.text(`ORDEN #${datos.consecutivo}`, izquierda, y)
@@ -57,43 +73,39 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     : datos.fecha
   doc.text(fechaLimpia, derecha, y, { align: 'right' })
 
-  if (datos.tipoPedido === 'MESA' && datos.mesa) {
-    y += 4
-    doc.setFont('courier', 'bold')
-    doc.setFontSize(8.5)
-    doc.text(`MESA / UBICACION: #${datos.mesa}`, izquierda, y)
-  }
+  // --- 3. DATOS DEL CLIENTE Y ENTREGA (SIEMPRE CON NOMBRE) ---
+  const nombreMostrar =
+    datos.cliente?.nombre?.trim() || datos.detallesDestino?.trim() || 'Cliente'
 
-  // --- CLIENTE ---
-  if (datos.cliente?.nombre) {
-    y += 4.5
-    y = escribirTextoConSalto(`CLIENTE: ${datos.cliente.nombre}`, izquierda, y, 8, true)
+  y += 4.5
+  y = escribirTextoConSalto(`CLIENTE: ${nombreMostrar.toUpperCase()}`, izquierda, y, 9, true)
 
-    if (datos.cliente.telefono) {
-      y = escribirTextoConSalto(`TEL: ${datos.cliente.telefono}`, izquierda, y, 8, false)
+  if (datos.tipoPedido === 'DOMICILIO') {
+    const telFormateado = formatearTelefono(datos.cliente?.telefono)
+    if (telFormateado) {
+      y += 0.5
+      y = escribirTextoConSalto(`TEL: ${telFormateado}`, izquierda, y, 9, true)
     }
 
-    if (datos.tipoPedido === 'DOMICILIO' && datos.cliente.direccion) {
-      y = escribirTextoConSalto(`DIR: ${datos.cliente.direccion}`, izquierda, y, 8, true)
+    const dirTexto = datos.cliente?.direccion?.trim()
+    if (dirTexto) {
+      y += 0.8
+      y = escribirTextoConSalto(`DIR: ${dirTexto.toUpperCase()}`, izquierda, y, 9.5, true)
+    }
 
-      if (datos.cliente.referenciaDireccion) {
-        y = escribirTextoConSalto(
-          `REF: ${datos.cliente.referenciaDireccion}`,
-          izquierda,
-          y,
-          8,
-          false
-        )
-      }
+    const refTexto = datos.cliente?.referenciaDireccion?.trim()
+    if (refTexto) {
+      y += 0.5
+      y = escribirTextoConSalto(`REF: ${refTexto}`, izquierda, y, 8.5, true)
     }
   }
 
-  y += 2
+  y += 1.5
   doc.setFont('courier', 'normal')
   doc.setFontSize(8)
   doc.text(SEPARADOR, centro, y, { align: 'center' })
 
-  // --- TABLA DE PRODUCTOS ---
+  // --- 4. TABLA DE PRODUCTOS ---
   y += 4
   doc.setFont('courier', 'bold')
   doc.setFontSize(8)
@@ -104,23 +116,20 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   doc.setFont('courier', 'normal')
   doc.text(SEPARADOR, centro, y, { align: 'center' })
 
-  // --- ITEMS DE LA COMANDA ---
+  // --- 5. ÍTEMS DE LA COMANDA Y ALERTAS DE COCINA ---
   y += 4
   datos.items.forEach((item) => {
     doc.setFont('courier', 'bold')
     doc.setFontSize(8.5)
 
-    // 1. Cantidad y Subtotal alineados sin pisarse con el nombre
     const textoCant = `${item.cantidad}x`
     const textoPrecio = `$${Number(item.subtotal || 0).toLocaleString('es-CO')}`
 
     doc.text(textoCant, izquierda, y)
     doc.text(textoPrecio, derecha, y, { align: 'right' })
 
-    // 2. Nombre del producto en columna central segura (x=13mm, ancho máximo 41mm -> llega hasta x=54mm)
-    y = escribirTextoConSalto(item.nombre, 13, y, 8.5, true, 41)
+    y = escribirTextoConSalto(item.nombre, 11, y, 8.5, true, 41)
 
-    // --- OBSERVACIONES DEL PRODUCTO ---
     if (item.observaciones && item.observaciones.trim()) {
       const bloques = item.observaciones.split(
         item.observaciones.includes(' | ') ? ' | ' : '\n'
@@ -151,36 +160,36 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         }
       })
 
-      if (listaAdiciones.length > 0) {
+      if (listaSin.length > 0) {
         doc.setFont('courier', 'bold')
-        doc.setFontSize(7.5)
-        doc.text('   ADICIONES:', izquierda, y)
-        y += 3.2
+        doc.setFontSize(7.8)
+        doc.text('  [!] SIN (QUITAR):', izquierda, y)
+        y += 3.3
 
-        listaAdiciones.forEach((adic) => {
-          y = escribirTextoConSalto(`    + ${adic}`, izquierda, y, 7.5, true, 66)
+        listaSin.forEach((ing) => {
+          y = escribirTextoConSalto(`    - ${ing.toUpperCase()}`, izquierda, y, 7.8, true, 64)
         })
       }
 
-      if (listaSin.length > 0) {
+      if (listaAdiciones.length > 0) {
         doc.setFont('courier', 'bold')
-        doc.setFontSize(7.5)
-        doc.text('   SIN (QUITAR):', izquierda, y)
-        y += 3.2
+        doc.setFontSize(7.8)
+        doc.text('  [+] ADICIONES:', izquierda, y)
+        y += 3.3
 
-        listaSin.forEach((ing) => {
-          y = escribirTextoConSalto(`    - ${ing}`, izquierda, y, 7.5, true, 66)
+        listaAdiciones.forEach((adic) => {
+          y = escribirTextoConSalto(`    + ${adic}`, izquierda, y, 7.8, true, 64)
         })
       }
 
       if (listaNotas.length > 0) {
         doc.setFont('courier', 'bold')
-        doc.setFontSize(7.5)
-        doc.text('   NOTA:', izquierda, y)
-        y += 3.2
+        doc.setFontSize(7.8)
+        doc.text('  [*] NOTA PLATO:', izquierda, y)
+        y += 3.3
 
         listaNotas.forEach((nota) => {
-          y = escribirTextoConSalto(`    * ${nota}`, izquierda, y, 7.5, false, 66)
+          y = escribirTextoConSalto(`    * ${nota}`, izquierda, y, 7.8, true, 64)
         })
       }
     }
@@ -192,7 +201,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   doc.setFontSize(8)
   doc.text(SEPARADOR, centro, y, { align: 'center' })
 
-  // --- TOTALES Y RESUMEN ---
+  // --- 6. TOTALES Y MEDIO DE PAGO ---
   y += 4
   if (datos.costoDomicilio && datos.costoDomicilio > 0) {
     doc.setFont('courier', 'normal')
@@ -216,25 +225,60 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     align: 'right',
   })
 
-  // --- FORMA DE PAGO + BANCO ---
+  // --- 7. FORMA DE PAGO Y VUELTOS ---
   if (datos.metodoPago) {
+    const esEfectivo = datos.metodoPago.toUpperCase().includes('EFECTIVO')
     y += 4.5
-    const textoPago = datos.bancoNombre
-      ? `PAGO: ${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
-      : `PAGO: ${datos.metodoPago.toUpperCase()}`
-    y = escribirTextoConSalto(textoPago, izquierda, y, 8, true)
+
+    if (datos.tipoPedido === 'DOMICILIO' && esEfectivo) {
+      y = escribirTextoConSalto(
+        `>>> COBRAR EN EFECTIVO: $${Number(datos.total || 0).toLocaleString('es-CO')} <<<`,
+        izquierda,
+        y,
+        8.5,
+        true
+      )
+    } else {
+      const textoPago = datos.bancoNombre
+        ? `PAGO: ${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
+        : `PAGO: ${datos.metodoPago.toUpperCase()}`
+      y = escribirTextoConSalto(textoPago, izquierda, y, 8.5, true)
+    }
+
+    if (esEfectivo && datos.montoRecibido && datos.montoRecibido > 0) {
+      y += 0.5
+      doc.setFont('courier', 'bold')
+      doc.setFontSize(8)
+      doc.text('PAGAN CON:', izquierda, y)
+      doc.text(`$${Number(datos.montoRecibido).toLocaleString('es-CO')}`, derecha, y, {
+        align: 'right',
+      })
+      y += 3.8
+      doc.text('DEVUELTA / CAMBIO:', izquierda, y)
+      doc.text(`$${Number(datos.cambio || 0).toLocaleString('es-CO')}`, derecha, y, {
+        align: 'right',
+      })
+      y += 2
+    }
   }
 
-  // --- NOTAS GENERALES AL FINAL ---
+  // --- 8. NOTAS GENERALES DE LA ORDEN ---
   if (datos.observacionesGenerales && datos.observacionesGenerales.trim()) {
-    y += 1.5
+    y += 2
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(8)
+    doc.text(SEPARADOR_DOBLE, centro, y, { align: 'center' })
+    y += 3.8
     y = escribirTextoConSalto(
-      `NOTA ORDEN: ${datos.observacionesGenerales.trim()}`,
+      `NOTA ORDEN: ${datos.observacionesGenerales.trim().toUpperCase()}`,
       izquierda,
       y,
-      8,
+      8.5,
       true
     )
+    doc.setFont('courier', 'normal')
+    doc.setFontSize(8)
+    doc.text(SEPARADOR_DOBLE, centro, y, { align: 'center' })
   }
 
   y += 4.5
@@ -246,14 +290,12 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
 }
 
 export const generarTicketPDF = (datos: DatosComandaCocina): jsPDF => {
-  // 1. Primera pasada en memoria para medir el alto exacto requerido (sin cortar ni desperdiciar papel)
   const docMedicion = new jsPDF({
     unit: 'mm',
     format: [80, 500],
   })
   const altoExacto = Math.max(renderizarContenidoTicket(docMedicion, datos), 95)
 
-  // 2. Segunda pasada con el alto milimétrico exacto del tiquete
   const docFinal = new jsPDF({
     unit: 'mm',
     format: [80, altoExacto],

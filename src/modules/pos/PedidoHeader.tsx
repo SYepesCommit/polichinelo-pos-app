@@ -51,17 +51,17 @@ export const PedidoHeader: React.FC<
         })}
       </div>
 
-      {/* CAMPOS COMUNES */}
+      {/* CAMPOS COMUNES (NOMBRE OBLIGATORIO Y NOTAS GENERALES EN TODOS LOS PEDIDOS) */}
       <div className="pt-2 border-t border-slate-800/80">
-        <div className={`grid grid-cols-1 ${tipoPedido !== 'DOMICILIO' ? 'md:grid-cols-2' : ''} gap-3`}>
-          {/* NOMBRE DEL CLIENTE / MESA (OBLIGATORIO) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* NOMBRE DEL CLIENTE (OBLIGATORIO EN TODOS LOS TIPOS DE ORDEN) */}
           <div className="relative">
             <User className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
             <input
               type="text"
               value={nombreCliente}
               onChange={(e) => setNombreCliente(e.target.value)}
-              placeholder="Nombre del cliente o mesa *"
+              placeholder="Nombre del cliente *"
               className={`w-full bg-slate-950 border rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none transition ${
                 !nombreCliente.trim()
                   ? 'border-amber-500/50 focus:border-amber-500'
@@ -71,19 +71,17 @@ export const PedidoHeader: React.FC<
             />
           </div>
 
-          {/* OBSERVACIONES DEL PEDIDO (SOLO VISIBLE EN MESA Y LLEVAR) */}
-          {tipoPedido !== 'DOMICILIO' && (
-            <div className="relative">
-              <MessageSquare className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
-              <input
-                type="text"
-                value={observacionesGenerales}
-                onChange={(e) => setObservacionesGenerales && setObservacionesGenerales(e.target.value)}
-                placeholder="Notas del pedido (Ej: Entregar en tienda de al lado, Servir rápido...) (Opcional)"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500"
-              />
-            </div>
-          )}
+          {/* OBSERVACIONES DEL PEDIDO (VISIBLE EN MESA, LLEVAR Y DOMICILIO) */}
+          <div className="relative">
+            <MessageSquare className="w-4 h-4 text-slate-500 absolute left-3 top-3 pointer-events-none" />
+            <input
+              type="text"
+              value={observacionesGenerales}
+              onChange={(e) => setObservacionesGenerales && setObservacionesGenerales(e.target.value)}
+              placeholder="Notas del pedido (Ej: Salsas aparte, Llevar devuelta, Servir rápido...) (Opcional)"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500"
+            />
+          </div>
         </div>
       </div>
 

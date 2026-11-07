@@ -109,9 +109,9 @@ export const useComandaPanel = ({
   const telLimpio = telefono.replace(/\D/g, '')
 
   const esClienteValido = () => {
+    if (!nombreCliente.trim()) return false
     if (tipoPedido === 'DOMICILIO') {
       return (
-        nombreCliente.trim().length > 0 &&
         telLimpio.length >= 7 &&
         telLimpio.length <= 10 &&
         direccionCliente.trim().length > 0 &&
@@ -129,8 +129,8 @@ export const useComandaPanel = ({
 
   const getMensajeFaltante = () => {
     if (carrito.length === 0) return null
+    if (!nombreCliente.trim()) return 'Ingresa el nombre del cliente'
     if (tipoPedido === 'DOMICILIO') {
-      if (!nombreCliente.trim()) return 'Ingresa el nombre del cliente'
       if (telLimpio.length < 7 || telLimpio.length > 10)
         return 'Ingresa un teléfono válido (7 a 10 dígitos)'
       if (!direccionCliente.trim()) return 'Ingresa la dirección de entrega'

@@ -75,7 +75,10 @@ export const usePosState = () => {
     }
   }
 
-  const handleGenerarComandaTicket = (pedidoRespuesta?: any) => {
+  const handleGenerarComandaTicket = (
+    pedidoRespuesta?: any,
+    datosEfectivo?: { montoRecibido?: number; cambio?: number }
+  ) => {
     if (carritoHook.carrito.length === 0 && !pedidoRespuesta) return
 
     const itemsFormateados = (pedidoRespuesta?.detalles || carritoHook.carrito).map((item: any) => ({
@@ -100,28 +103,32 @@ export const usePosState = () => {
       }),
       tipoPedido,
       cliente: {
-        nombre: clienteHook.nombreCliente.trim() || 'Cliente Mostrador',
-        telefono: tipoPedido === 'DOMICILIO' ? clienteHook.telefono : '',
-        direccion: tipoPedido === 'DOMICILIO' ? clienteHook.direccionCliente : '',
+        nombre: clienteHook.nombreCliente.trim() || 'Cliente',
+        telefono: tipoPedido === 'DOMICILIO' ? clienteHook.telefono.trim() : '',
+        direccion: tipoPedido === 'DOMICILIO' ? clienteHook.direccionCliente.trim() : '',
         referenciaDireccion:
-          tipoPedido === 'DOMICILIO' ? clienteHook.referenciaCliente : undefined,
+          tipoPedido === 'DOMICILIO' && clienteHook.referenciaCliente.trim()
+            ? clienteHook.referenciaCliente.trim()
+            : undefined,
       },
-      observacionesGenerales:
-        tipoPedido !== 'DOMICILIO' ? clienteHook.observacionesGenerales.trim() : undefined,
+      observacionesGenerales: clienteHook.observacionesGenerales.trim() || undefined,
       items: itemsFormateados,
       subtotal: carritoHook.subtotalCarrito,
       costoDomicilio: tipoPedido === 'DOMICILIO' ? clienteHook.montoDomicilio : 0,
       total: carritoHook.total,
       metodoPago: metodoPagoSeleccionado?.nombre || 'EFECTIVO',
       bancoNombre: metodoPagoSeleccionado?.requiereBanco ? bancoObj?.nombre : undefined,
+      montoRecibido: datosEfectivo?.montoRecibido,
+      cambio: datosEfectivo?.cambio,
     }
 
     setTicketParaImprimir(comandaData)
     return comandaData
   }
 
-  const handleCobrar = async () => {
+  const handleCobrar = async (datosEfectivo?: { montoRecibido?: number; cambio?: number }) => {
     if (cobrando || carritoHook.carrito.length === 0 || !metodoPagoSeleccionado) return
+    if (!clienteHook.nombreCliente.trim()) return
 
     if (
       tipoPedido === 'DOMICILIO' &&
@@ -152,14 +159,11 @@ export const usePosState = () => {
       const payload = {
         tipoPedido,
         montoDomicilio: tipoPedido === 'DOMICILIO' ? clienteHook.montoDomicilio : 0,
-        detallesDestino: clienteHook.nombreCliente.trim() || 'Cliente Mostrador',
-        observacionesGenerales:
-          tipoPedido !== 'DOMICILIO' && clienteHook.observacionesGenerales.trim()
-            ? clienteHook.observacionesGenerales.trim()
-            : undefined,
+        detallesDestino: clienteHook.nombreCliente.trim(),
+        observacionesGenerales: clienteHook.observacionesGenerales.trim() || undefined,
         clienteData: {
           telefono: tipoPedido === 'DOMICILIO' ? clienteHook.telefono.trim() : '',
-          nombre: clienteHook.nombreCliente.trim() || 'Cliente Mostrador',
+          nombre: clienteHook.nombreCliente.trim(),
           direccion: tipoPedido === 'DOMICILIO' ? clienteHook.direccionCliente.trim() : '',
           referenciaDireccion:
             tipoPedido === 'DOMICILIO' && clienteHook.referenciaCliente.trim()
@@ -179,7 +183,7 @@ export const usePosState = () => {
         throw new Error('La base de datos no retornó el pedido creado.')
       }
 
-      handleGenerarComandaTicket(pedidoCreado)
+      handleGenerarComandaTicket(pedidoCreado, datosEfectivo)
 
       carritoHook.setCarrito([])
       clienteHook.limpiarDatosCliente()

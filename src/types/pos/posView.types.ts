@@ -31,6 +31,8 @@ export interface DatosComandaCocina {
   hora?: string
   detallesDestino?: string
   bancoNombre?: string
+  montoRecibido?: number
+  cambio?: number
 }
 
 export interface FormEspecialData {

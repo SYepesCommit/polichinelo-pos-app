@@ -23,7 +23,7 @@ export interface ComandaPanelProps {
   onAgregarItemLibre?: (nombre: string, precio: number) => void
   onVaciarCarrito?: () => void
   cobrando?: boolean
-  onCobrar: () => void
+  onCobrar: (datosEfectivo?: { montoRecibido?: number; cambio?: number }) => void
   onActualizarBancos?: () => void
 }
 

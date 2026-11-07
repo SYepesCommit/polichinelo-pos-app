@@ -40,6 +40,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
   reimprimirTicket: (ventaId: number) => 
     ipcRenderer.invoke('reimprimirTicket', ventaId),
+  imprimirComanda: (datosComanda: any) =>
+    ipcRenderer.invoke('imprimir-comanda', datosComanda),
   desanularVenta: (id: number) => ipcRenderer.invoke('desanular-venta', id),
   getVentasPaginadas: (filtros: any) => ipcRenderer.invoke('get-ventas-paginadas', filtros),
   cambiarMetodoPagoVenta: (data: {

@@ -13,6 +13,8 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
   onClose,
 }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
+  const [imprimiendo, setImprimiendo] = useState(false)
+  const [mensajeEstado, setMensajeEstado] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
 
   useEffect(() => {
     const doc = generarTicketPDF(datosTicket)
@@ -39,8 +41,41 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
     }
   }
 
-  // Acción en blanco mientras se conecta y configura la impresora térmica física
-  const handleImprimirDirecto = () => {}
+  // 🔴 Impresión directa silenciosa a la impresora térmica sin márgenes ni diálogo
+  const handleImprimirDirecto = async () => {
+    if (imprimiendo) return
+    setImprimiendo(true)
+    setMensajeEstado(null)
+
+    try {
+      if (window.electronAPI?.imprimirComanda) {
+        const res = await window.electronAPI.imprimirComanda(datosTicket)
+        if (res?.success) {
+          setMensajeEstado({ tipo: 'ok', texto: '✅ ¡Comanda enviada a la térmica!' })
+          setTimeout(() => {
+            onClose()
+          }, 1000)
+        } else {
+          setMensajeEstado({
+            tipo: 'error',
+            texto: res?.error || 'No se pudo imprimir. Revisa que la impresora esté encendida.',
+          })
+        }
+      } else {
+        setMensajeEstado({
+          tipo: 'error',
+          texto: 'API de impresión directa no disponible.',
+        })
+      }
+    } catch (err: any) {
+      setMensajeEstado({
+        tipo: 'error',
+        texto: err.message || 'Error al imprimir comanda.',
+      })
+    } finally {
+      setImprimiendo(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 select-none">
@@ -50,7 +85,7 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
           <div className="flex items-center gap-2">
             <Printer className="w-5 h-5 text-amber-400" />
             <h3 className="font-extrabold text-base text-slate-100">
-              Vista Previa de Comanda #{datosTicket.consecutivo}
+              Comanda #{datosTicket.consecutivo}
             </h3>
           </div>
           <button
@@ -77,42 +112,63 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
           )}
         </div>
 
+        {/* MENSAJE DE ESTADO DE IMPRESIÓN */}
+        {mensajeEstado && (
+          <div
+            className={`mt-3 py-2 px-3 rounded-xl text-xs font-bold text-center ${
+              mensajeEstado.tipo === 'ok'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-red-500/10 text-red-400 border border-red-500/20'
+            }`}
+          >
+            {mensajeEstado.texto}
+          </div>
+        )}
+
         {/* BOTONES DE ACCIÓN */}
         <div className="flex items-center gap-2 mt-4 pt-2 border-t border-slate-800 flex-wrap">
+          {/* BOTÓN IMPRIMIR DIRECTO (DESTACADO) */}
           <button
             type="button"
             onClick={handleImprimirDirecto}
-            className="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95"
-            title="Imprimir en impresora térmica (Pendiente de conexión)"
+            disabled={imprimiendo}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black transition flex items-center justify-center gap-2 active:scale-95 shadow-lg ${
+              imprimiendo
+                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 cursor-wait'
+                : 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
+            }`}
+            title="Imprimir directamente en la impresora térmica"
           >
-            <Printer className="w-4 h-4 text-amber-400" />
-            <span>Imprimir</span>
+            <Printer className="w-4 h-4 stroke-[2.5]" />
+            <span>{imprimiendo ? 'Imprimiendo...' : 'Imprimir'}</span>
           </button>
 
           <button
             type="button"
             onClick={handleDescargar}
-            className="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95"
+            className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95"
+            title="Descargar archivo PDF"
           >
             <Download className="w-4 h-4 text-amber-400" />
-            <span>Descargar PDF</span>
+            <span className="hidden sm:inline">PDF</span>
           </button>
 
           <button
             type="button"
             onClick={handleAbrirNavegador}
-            className="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95"
+            className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-700 active:scale-95"
+            title="Abrir en pestaña independiente"
           >
             <ExternalLink className="w-4 h-4 text-amber-400" />
-            <span>Tamaño Real</span>
+            <span className="hidden sm:inline">Pestaña</span>
           </button>
 
           <button
             type="button"
             onClick={onClose}
-            className="py-2.5 px-5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition active:scale-95"
+            className="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition active:scale-95 border border-slate-700"
           >
-            Aceptar
+            Cerrar
           </button>
         </div>
       </div>

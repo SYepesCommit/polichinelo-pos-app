@@ -3,11 +3,7 @@ import path from 'path'
 import fs from 'fs-extra'
 import { productoService } from './producto.service'
 
-// 🔴 SI printer.service.ts está en src/services/printer.service.ts:
-import { imprimirComandaTermica } from '../../../src/services/printer.service'
-
-// 🔴 SI printer.service.ts está en electron/services/printer.service.ts:
-// import { imprimirComandaTermica } from '../../services/printer.service'
+import { imprimirComandaTermica } from '../printer/printer.service'
 
 // Directorio persistente para almacenar las imágenes de la aplicación
 const UPLOADS_DIR = path.join(app.getPath('userData'), 'uploads')

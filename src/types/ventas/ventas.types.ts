@@ -121,6 +121,8 @@ export interface VentasHeaderProps {
 export interface VentasMetricsProps {
   metricas: MetricasVentas
   totalGastos: number
+  totalGastosEfectivo?: number
+  totalGastosTransferencia?: number
   efectivoEsperado: number
   formatMoneda: (monto: number) => string
   handleAbrirDetalleGastos: () => void
@@ -178,7 +180,9 @@ export interface GastosCajaModalsProps {
   setConceptoGasto: (v: string) => void
   montoGasto: string
   setMontoGasto: (v: string) => void
-  handleGuardarGasto: (e: React.FormEvent) => void
+  origenFondosGasto: 'EFECTIVO' | 'TRANSFERENCIA'
+  setOrigenFondosGasto: (v: 'EFECTIVO' | 'TRANSFERENCIA') => void
+  handleGuardarGasto: (e: React.FormEvent, conceptoOverride?: string) => void
   guardandoGasto: boolean
   modalDetalleGastosAbierto: boolean
   setModalDetalleGastosAbierto: (v: boolean) => void
@@ -187,6 +191,8 @@ export interface GastosCajaModalsProps {
   handleEliminarGasto: (id: number) => void
   formatMoneda: (monto: number) => string
   totalGastos: number
+  totalGastosEfectivo?: number
+  totalGastosTransferencia?: number
 }
 
 export interface AnulacionVentaModalsProps {

@@ -191,6 +191,11 @@ export const ventaService = {
       })
 
       const totalGastos = gastos.reduce((acc, g) => acc + Number(g.monto || 0), 0)
+      const totalGastosEfectivo = gastos.reduce((acc, g) => {
+        const esTransf = (g.descripcion || '').trim().toUpperCase().startsWith('[TRANSFERENCIA]')
+        return esTransf ? acc : acc + Number(g.monto || 0)
+      }, 0)
+      const totalGastosTransferencia = totalGastos - totalGastosEfectivo
       const m = reporte.metricas
 
       const lineas: string[] = []
@@ -206,8 +211,10 @@ export const ventaService = {
       lineas.push(`"Total Facturado (Ventas Activas)";${m.totalMonto}`)
       lineas.push(`"Ingresos en Efectivo";${m.totalEfectivo}`)
       lineas.push(`"Ingresos en Bancos / Transferencias";${m.totalBancos}`)
-      lineas.push(`"Total Salidas / Gastos de Caja";${totalGastos}`)
-      lineas.push(`"Efectivo Neto Esperado en Caja";${m.totalEfectivo - totalGastos}`)
+      lineas.push(`"Salidas en Efectivo (Caja)";${totalGastosEfectivo}`)
+      lineas.push(`"Salidas por Transferencia / Banco";${totalGastosTransferencia}`)
+      lineas.push(`"Total Salidas / Gastos";${totalGastos}`)
+      lineas.push(`"Efectivo Neto Esperado en Caja";${m.totalEfectivo - totalGastosEfectivo}`)
       lineas.push(`"Total Recargos de Domicilios (${m.domicilios} envios)";${m.totalDomiciliosMonto}`)
       lineas.push('')
 
@@ -235,14 +242,25 @@ export const ventaService = {
 
       // SECCIÓN 4: SALIDAS / GASTOS DE CAJA
       lineas.push('"4. SALIDAS Y GASTOS DE CAJA"')
-      lineas.push('"ID";"Hora";"Concepto / Motivo";"Monto (COP)"')
+      lineas.push('"ID";"Fecha";"Hora";"Origen";"Concepto / Motivo";"Monto (COP)"')
       gastos.forEach((g) => {
-        const horaGasto = new Date(g.fechaRegistro).toLocaleTimeString('es-CO', {
+        const fechaObjGasto = new Date(g.fechaRegistro)
+        const fechaGasto = fechaObjGasto.toLocaleDateString('en-CA', {
+          timeZone: 'America/Bogota',
+        })
+        const horaGasto = fechaObjGasto.toLocaleTimeString('es-CO', {
           timeZone: 'America/Bogota',
           hour: '2-digit',
           minute: '2-digit',
         })
-        lineas.push(`${g.id};${escaparCsv(horaGasto)};${escaparCsv(g.descripcion)};${g.monto}`)
+        const rawDesc = (g.descripcion || '').trim()
+        const esTransf = rawDesc.toUpperCase().startsWith('[TRANSFERENCIA]')
+        const descLimpia = rawDesc.replace(/^\[(TRANSFERENCIA|EFECTIVO)\]\s*/i, '').trim()
+        lineas.push(
+          `${g.id};${escaparCsv(fechaGasto)};${escaparCsv(horaGasto)};${escaparCsv(
+            esTransf ? 'Transferencia' : 'Efectivo Caja'
+          )};${escaparCsv(descLimpia)};${g.monto}`
+        )
       })
       lineas.push('')
 

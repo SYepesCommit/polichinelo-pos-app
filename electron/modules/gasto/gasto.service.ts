@@ -1,5 +1,7 @@
 import { prisma } from '../../config/database'
 
+const PREFIJO_TRANSF = '[TRANSFERENCIA] '
+
 export class GastosService {
   private static getRangoUTC5(fechaInicioStr: string, fechaFinStr?: string) {
     const finStr = fechaFinStr || fechaInicioStr
@@ -8,16 +10,59 @@ export class GastosService {
     return { inicio, fin }
   }
 
+  static parsearDescripcionGasto(descripcionRaw: string) {
+    const raw = (descripcionRaw || '').trim()
+    if (raw.toUpperCase().startsWith('[TRANSFERENCIA]')) {
+      return {
+        origenFondos: 'TRANSFERENCIA' as const,
+        descripcionLimpia: raw.replace(/^\[TRANSFERENCIA\]\s*/i, '').trim() || 'Salida por transferencia',
+      }
+    }
+    return {
+      origenFondos: 'EFECTIVO' as const,
+      descripcionLimpia: raw.replace(/^\[EFECTIVO\]\s*/i, '').trim() || 'Salida de caja',
+    }
+  }
+
   // Registrar gasto
-  static async registrarGasto(datos: { concepto: string; monto: number; fecha: string }) {
+  static async registrarGasto(datos: {
+    concepto: string
+    monto: number
+    fecha: string
+    origenFondos?: 'EFECTIVO' | 'TRANSFERENCIA'
+  }) {
     try {
-      const { concepto, monto, fecha } = datos
-      // Guardar a las 12:00 del mediodía en hora Colombia UTC-5 para que caiga con certeza dentro del día calendario
-      const fechaParaGuardar = new Date(`${fecha}T12:00:00-05:00`)
+      const { concepto, monto, fecha, origenFondos = 'EFECTIVO' } = datos
+      const ahora = new Date()
+      const hoyColombia = ahora.toLocaleDateString('en-CA', {
+        timeZone: 'America/Bogota',
+      })
+
+      let fechaParaGuardar: Date
+      if (!fecha || fecha === hoyColombia) {
+        // Si es del día de hoy, guardar el instante exacto real
+        fechaParaGuardar = ahora
+      } else {
+        // Si se registra para otra fecha seleccionada en el filtro, conservar la hora actual de Colombia en esa fecha
+        const horaColombia = ahora.toLocaleTimeString('en-GB', {
+          timeZone: 'America/Bogota',
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+        fechaParaGuardar = new Date(`${fecha}T${horaColombia}-05:00`)
+      }
+
+      const conceptoLimpio = concepto.trim()
+      const descripcionFinal =
+        origenFondos === 'TRANSFERENCIA'
+          ? `${PREFIJO_TRANSF}${conceptoLimpio}`
+          : conceptoLimpio
 
       const nuevoGasto = await prisma.gasto.create({
         data: {
-          descripcion: concepto.trim(),
+          descripcion: descripcionFinal,
           monto: Number(monto),
           fechaRegistro: fechaParaGuardar,
         },
@@ -30,17 +75,36 @@ export class GastosService {
     }
   }
 
-  // Suma total para las tarjetas de métricas
+  // Suma total para las tarjetas de métricas (separando efectivo vs transferencia)
   static async getGastosRango(fechaInicio: string, fechaFin: string) {
     const { inicio, fin } = this.getRangoUTC5(fechaInicio, fechaFin)
 
-    const resultado = await prisma.gasto.aggregate({
-      _sum: { monto: true },
+    const gastos = await prisma.gasto.findMany({
       where: {
         fechaRegistro: { gte: inicio, lte: fin },
       },
+      select: {
+        monto: true,
+        descripcion: true,
+      },
     })
-    return { total: resultado._sum.monto || 0 }
+
+    let total = 0
+    let totalEfectivo = 0
+    let totalTransferencia = 0
+
+    for (const g of gastos) {
+      const montoNum = Number(g.monto || 0)
+      total += montoNum
+      const { origenFondos } = this.parsearDescripcionGasto(g.descripcion)
+      if (origenFondos === 'TRANSFERENCIA') {
+        totalTransferencia += montoNum
+      } else {
+        totalEfectivo += montoNum
+      }
+    }
+
+    return { total, totalEfectivo, totalTransferencia }
   }
 
   // LISTADO DETALLADO PARA EL MODAL
@@ -57,7 +121,14 @@ export class GastosService {
         },
       })
 
-      return gastos
+      return gastos.map((g) => {
+        const { origenFondos, descripcionLimpia } = this.parsearDescripcionGasto(g.descripcion)
+        return {
+          ...g,
+          descripcion: descripcionLimpia,
+          origenFondos,
+        }
+      })
     } catch (error) {
       console.error('Error al listar gastos:', error)
       return []

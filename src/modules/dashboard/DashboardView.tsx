@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react'
 import { CambiarPinModal } from '@/components/CambiarPinModal'
 import { BackupModal } from '@/components/BackupModal'
 import { PinSupervisorModal } from '@/components/PinSupervisorModal'
+import packageInfo from '../../../package.json'
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectModulo }) => {
   const [modalCambiarPinAbierto, setModalCambiarPinAbierto] = useState(false)
@@ -161,7 +162,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectModulo }) 
 
       {/* BARRA INFERIOR DE ESTADO / ACTUALIZACIONES */}
       <div className="w-full max-w-7xl mt-8 pt-4 border-t border-slate-900 flex items-center justify-between text-xs text-slate-500">
-        <span className="font-mono">Polichinelo POS · v1.0.0</span>
+        <span className="font-mono">Polichinelo POS · v{packageInfo.version}</span>
 
         <div className="flex items-center gap-2">
           {infoUpdater.estado === 'comprobando' && (
@@ -191,17 +192,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectModulo }) 
 
           {infoUpdater.estado === 'al-dia' && (
             <span className="text-slate-400 font-semibold">Sistema al día</span>
-          )}
-
-          {(infoUpdater.estado === 'idle' || infoUpdater.estado === 'al-dia') && (
-            <button
-              type="button"
-              onClick={handleComprobarUpdates}
-              className="p-1 hover:text-amber-400 transition"
-              title="Buscar actualizaciones manualmente"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-            </button>
           )}
         </div>
       </div>

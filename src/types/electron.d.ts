@@ -83,9 +83,28 @@ export interface IElectronAPI {
   reimprimirTicket: (ventaId: number) => Promise<any>
 
   // Gastos y Cierre de Caja
-  registrarGasto: (datos: { concepto: string; monto: number; fecha: string }) => Promise<{ success: boolean; id?: number; error?: string }>
-  getGastosRango: (fechaInicio: string, fechaFin: string) => Promise<{ total: number }>
-  getGastosListado: (fechaInicio: string, fechaFin: string) => Promise<Array<{ id: number; descripcion: string; monto: number; fechaRegistro: string | Date }>>
+  registrarGasto: (datos: {
+    concepto: string
+    monto: number
+    fecha: string
+    origenFondos?: 'EFECTIVO' | 'TRANSFERENCIA'
+  }) => Promise<{ success: boolean; id?: number; error?: string }>
+  getGastosRango: (
+    fechaInicio: string,
+    fechaFin: string
+  ) => Promise<{ total: number; totalEfectivo?: number; totalTransferencia?: number }>
+  getGastosListado: (
+    fechaInicio: string,
+    fechaFin: string
+  ) => Promise<
+    Array<{
+      id: number
+      descripcion: string
+      monto: number
+      fechaRegistro: string | Date
+      origenFondos?: 'EFECTIVO' | 'TRANSFERENCIA'
+    }>
+  >
   eliminarGasto: (id: number) => Promise<{ success: boolean; error?: string }>
   imprimirCierreCaja?: (datosCierre: any) => Promise<{ success: boolean }>
 

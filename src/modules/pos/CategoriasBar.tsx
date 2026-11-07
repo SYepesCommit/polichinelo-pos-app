@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sparkles, Utensils, Plus, Archive, Search, X } from 'lucide-react'
+import { Sparkles, Utensils, Plus, Search, X } from 'lucide-react'
 import { CategoriasBarProps } from '@/types/pos/categoriasBar.types'
 
 export const CategoriasBar: React.FC<CategoriasBarProps> = ({
@@ -10,7 +10,6 @@ export const CategoriasBar: React.FC<CategoriasBarProps> = ({
   setBusquedaPos,
   onAbrirModalEspeciales,
   onAbrirNuevoEspecial,
-  onAbrirArchivados,
 }) => {
   const handleSeleccionarCategoria = (id: string) => {
     setCategoriaActiva(id)
@@ -76,18 +75,6 @@ export const CategoriasBar: React.FC<CategoriasBarProps> = ({
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
               <span>+ Crear Plato del Día</span>
-            </button>
-          )}
-
-          {onAbrirArchivados && (
-            <button
-              type="button"
-              onClick={onAbrirArchivados}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-red-500/40 text-slate-400 hover:text-red-400 text-xs font-bold transition flex items-center gap-1.5 active:scale-95"
-              title="Ver o borrar platos archivados"
-            >
-              <Archive className="w-3.5 h-3.5" />
-              <span>Archivados</span>
             </button>
           )}
         </div>

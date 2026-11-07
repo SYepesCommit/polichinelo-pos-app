@@ -16,6 +16,8 @@ import { VentasMetricsProps } from '@/types/ventas/ventas.types'
 export const VentasMetrics: React.FC<VentasMetricsProps> = ({
   metricas,
   totalGastos,
+  totalGastosEfectivo = 0,
+  totalGastosTransferencia = 0,
   efectivoEsperado,
   formatMoneda,
   handleAbrirDetalleGastos,
@@ -95,6 +97,18 @@ export const VentasMetrics: React.FC<VentasMetricsProps> = ({
           <span className="text-xl font-black text-rose-400 mt-1">
             -${formatMoneda(totalGastos || 0)}
           </span>
+          {totalGastos > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1.5 pt-1.5 border-t border-rose-500/20">
+              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-500/15 text-rose-200 border border-rose-500/30">
+                Caja: -${formatMoneda(totalGastosEfectivo)}
+              </span>
+              {totalGastosTransferencia > 0 && (
+                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-200 border border-purple-500/30">
+                  Transf: -${formatMoneda(totalGastosTransferencia)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* EFECTIVO ESPERADO EN CAJA */}

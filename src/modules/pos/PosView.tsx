@@ -7,7 +7,6 @@ import { ComandaPanel } from './ComandaPanel'
 import { NoteModal } from './NoteModal'
 import { PlatoDelDiaModal } from './PlatoDelDiaModal'
 import { NuevoEspecialModal } from './NuevoEspecialModal'
-import { EspecialesArchivadosModal } from './EspecialesArchivadosModal'
 import { TicketPreviewModal } from './TicketPreviewModal'
 
 export const PosView: React.FC = () => {
@@ -44,7 +43,6 @@ export const PosView: React.FC = () => {
           busquedaPos={pos.busquedaPos}
           setBusquedaPos={pos.setBusquedaPos}
           onAbrirModalEspeciales={() => pos.setMostrarModalEspeciales(true)}
-          onAbrirArchivados={() => pos.setMostrarModalArchivados(true)}
         />
 
         <ProductGrid
@@ -107,13 +105,6 @@ export const PosView: React.FC = () => {
           categoriaActivaId={pos.categoriaActiva}
           onClose={() => pos.setMostrarModalNuevoEspecial(false)}
           onGuardarEspecial={pos.handleGuardarProductoEspecial}
-        />
-      )}
-
-      {pos.mostrarModalArchivados && (
-        <EspecialesArchivadosModal
-          onClose={() => pos.setMostrarModalArchivados(false)}
-          onRecargarMenu={pos.recargarMenu}
         />
       )}
 

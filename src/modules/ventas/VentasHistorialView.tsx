@@ -15,7 +15,8 @@ export const VentasHistorialView: React.FC = () => {
   const hook = useVentasHistorial()
 
   const formatMoneda = (monto: number) => monto.toLocaleString('es-CO')
-  const efectivoEsperado = (hook.metricas?.totalEfectivo || 0) - (hook.totalGastos || 0)
+  const efectivoEsperado =
+    (hook.metricas?.totalEfectivo || 0) - (hook.totalGastosEfectivo ?? hook.totalGastos ?? 0)
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto h-full flex flex-col select-none">
@@ -42,6 +43,8 @@ export const VentasHistorialView: React.FC = () => {
       <VentasMetrics
         metricas={hook.metricas}
         totalGastos={hook.totalGastos}
+        totalGastosEfectivo={hook.totalGastosEfectivo}
+        totalGastosTransferencia={hook.totalGastosTransferencia}
         efectivoEsperado={efectivoEsperado}
         formatMoneda={formatMoneda}
         handleAbrirDetalleGastos={hook.handleAbrirDetalleGastos}
@@ -90,6 +93,8 @@ export const VentasHistorialView: React.FC = () => {
         setConceptoGasto={hook.setConceptoGasto}
         montoGasto={hook.montoGasto}
         setMontoGasto={hook.setMontoGasto}
+        origenFondosGasto={hook.origenFondosGasto}
+        setOrigenFondosGasto={hook.setOrigenFondosGasto}
         handleGuardarGasto={hook.handleGuardarGasto}
         guardandoGasto={hook.guardandoGasto}
         modalDetalleGastosAbierto={hook.modalDetalleGastosAbierto}
@@ -98,6 +103,8 @@ export const VentasHistorialView: React.FC = () => {
         cargandoGastos={hook.cargandoGastos}
         handleEliminarGasto={hook.handleEliminarGasto}
         totalGastos={hook.totalGastos}
+        totalGastosEfectivo={hook.totalGastosEfectivo}
+        totalGastosTransferencia={hook.totalGastosTransferencia}
         ventaAAnular={hook.ventaAAnular}
         setVentaAAnular={hook.setVentaAAnular}
         motivoAnulacion={hook.motivoAnulacion}

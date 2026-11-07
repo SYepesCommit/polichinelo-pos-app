@@ -13,6 +13,8 @@ export const VentasModals: React.FC<VentasModalsProps> = (props) => {
         setConceptoGasto={props.setConceptoGasto}
         montoGasto={props.montoGasto}
         setMontoGasto={props.setMontoGasto}
+        origenFondosGasto={props.origenFondosGasto}
+        setOrigenFondosGasto={props.setOrigenFondosGasto}
         handleGuardarGasto={props.handleGuardarGasto}
         guardandoGasto={props.guardandoGasto}
         modalDetalleGastosAbierto={props.modalDetalleGastosAbierto}
@@ -22,6 +24,8 @@ export const VentasModals: React.FC<VentasModalsProps> = (props) => {
         handleEliminarGasto={props.handleEliminarGasto}
         formatMoneda={props.formatMoneda}
         totalGastos={props.totalGastos}
+        totalGastosEfectivo={props.totalGastosEfectivo}
+        totalGastosTransferencia={props.totalGastosTransferencia}
       />
 
       <AnulacionVentaModals

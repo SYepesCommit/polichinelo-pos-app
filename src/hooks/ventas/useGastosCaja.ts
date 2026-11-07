@@ -21,7 +21,10 @@ export const useGastosCaja = ({
   const [modalGastoAbierto, setModalGastoAbierto] = useState(false)
   const [conceptoGasto, setConceptoGasto] = useState('')
   const [montoGasto, setMontoGasto] = useState('')
+  const [origenFondosGasto, setOrigenFondosGasto] = useState<'EFECTIVO' | 'TRANSFERENCIA'>('EFECTIVO')
   const [totalGastos, setTotalGastos] = useState(0)
+  const [totalGastosEfectivo, setTotalGastosEfectivo] = useState(0)
+  const [totalGastosTransferencia, setTotalGastosTransferencia] = useState(0)
   const [guardandoGasto, setGuardandoGasto] = useState(false)
 
   const [modalDetalleGastosAbierto, setModalDetalleGastosAbierto] = useState(false)
@@ -31,13 +34,17 @@ export const useGastosCaja = ({
   const consultarTotalGastos = useCallback(async (inicio: string, fin: string) => {
     if (window.electronAPI?.getGastosRango) {
       const resGastos = await window.electronAPI.getGastosRango(inicio, fin)
-      setTotalGastos(resGastos.total || 0)
+      const total = resGastos.total || 0
+      setTotalGastos(total)
+      setTotalGastosEfectivo(resGastos.totalEfectivo ?? total)
+      setTotalGastosTransferencia(resGastos.totalTransferencia ?? 0)
     }
   }, [])
 
-  const handleGuardarGasto = async (e: React.FormEvent) => {
+  const handleGuardarGasto = async (e: React.FormEvent, conceptoOverride?: string) => {
     e.preventDefault()
-    if (!conceptoGasto.trim() || !montoGasto) return
+    const conceptoFinal = (conceptoOverride ?? conceptoGasto).trim()
+    if (!conceptoFinal || !montoGasto) return
 
     setGuardandoGasto(true)
     try {
@@ -45,15 +52,17 @@ export const useGastosCaja = ({
         const fechaAEnviar = modoFecha === 'UNICA' ? fechaUnica : hoyStr
 
         await window.electronAPI.registrarGasto({
-          concepto: conceptoGasto.trim(),
+          concepto: conceptoFinal,
           monto: Number(montoGasto),
           fecha: fechaAEnviar,
+          origenFondos: origenFondosGasto,
         })
       }
 
       setModalGastoAbierto(false)
       setConceptoGasto('')
       setMontoGasto('')
+      setOrigenFondosGasto('EFECTIVO')
 
       await onRecargarArqueo()
     } catch (error) {
@@ -102,7 +111,11 @@ export const useGastosCaja = ({
     setConceptoGasto,
     montoGasto,
     setMontoGasto,
+    origenFondosGasto,
+    setOrigenFondosGasto,
     totalGastos,
+    totalGastosEfectivo,
+    totalGastosTransferencia,
     guardandoGasto,
     modalDetalleGastosAbierto,
     setModalDetalleGastosAbierto,

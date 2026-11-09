@@ -63,6 +63,8 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({
                   : prod.imagenUrl
               }
               alt={prod.nombre}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.currentTarget.style.display = 'none'

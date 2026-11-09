@@ -151,6 +151,11 @@ export async function ensureDatabaseReady(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "Pedido_fechaRegistro_idx" ON "Pedido"("fechaRegistro")`,
       `CREATE INDEX IF NOT EXISTS "Pedido_tipoPedido_idx" ON "Pedido"("tipoPedido")`,
       `CREATE INDEX IF NOT EXISTS "Pedido_estado_idx" ON "Pedido"("estado")`,
+      `CREATE INDEX IF NOT EXISTS "PedidoDetalle_pedidoId_idx" ON "PedidoDetalle"("pedidoId")`,
+      `CREATE INDEX IF NOT EXISTS "PedidoDetalle_productoId_idx" ON "PedidoDetalle"("productoId")`,
+      `CREATE INDEX IF NOT EXISTS "PagoDetalle_pedidoId_idx" ON "PagoDetalle"("pedidoId")`,
+      `CREATE INDEX IF NOT EXISTS "PagoDetalle_bancoId_idx" ON "PagoDetalle"("bancoId")`,
+      `CREATE INDEX IF NOT EXISTS "Gasto_fechaRegistro_idx" ON "Gasto"("fechaRegistro")`,
       `CREATE INDEX IF NOT EXISTS "Producto_categoriaId_idx" ON "Producto"("categoriaId")`,
       `CREATE INDEX IF NOT EXISTS "Producto_activo_idx" ON "Producto"("activo")`,
     ]

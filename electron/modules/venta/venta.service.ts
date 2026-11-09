@@ -5,8 +5,10 @@ import fs from 'node:fs'
 
 function getRangoUTC5(fechaInicioStr: string, fechaFinStr?: string) {
   const finStr = fechaFinStr || fechaInicioStr
-  const inicio = new Date(`${fechaInicioStr}T00:00:00-05:00`)
-  const fin = new Date(`${finStr}T23:59:59.999-05:00`)
+  // Jornada operativa con margen de madrugada (corte 04:00 a.m. hora Colombia)
+  const inicio = new Date(`${fechaInicioStr}T04:00:00-05:00`)
+  const baseFin = new Date(`${finStr}T00:00:00-05:00`)
+  const fin = new Date(baseFin.getTime() + 28 * 60 * 60 * 1000 - 1)
   return { inicio, fin }
 }
 
@@ -492,14 +494,22 @@ export const ventaService = {
       ]
     }
 
+    // Condición global del período para el Arqueo de Caja (independiente de filtros de búsqueda de la tabla inferior)
+    const wherePeriodoActivos = {
+      fechaRegistro: where.fechaRegistro,
+      estado: { not: 'ANULADO' },
+    }
+
     const [
       pedidos,
       totalRegistros,
       agregados,
       agregadoDomicilios,
       conteoPorTipo,
-      pagosActivos,
-      detallesVendidos,
+      pagosAgrupados,
+      bancosCatalogo,
+      productosAgrupados,
+      productosCatalogo,
     ] = await Promise.all([
       prisma.pedido.findMany({
         where,
@@ -520,14 +530,13 @@ export const ventaService = {
       prisma.pedido.count({ where }),
 
       prisma.pedido.aggregate({
-        where: { ...where, estado: { not: 'ANULADO' } },
+        where: wherePeriodoActivos,
         _sum: { total: true },
       }),
 
       prisma.pedido.aggregate({
         where: {
-          fechaRegistro: where.fechaRegistro,
-          estado: { not: 'ANULADO' },
+          ...wherePeriodoActivos,
           tipoPedido: 'DOMICILIO',
         },
         _sum: { montoDomicilio: true },
@@ -535,37 +544,41 @@ export const ventaService = {
 
       prisma.pedido.groupBy({
         by: ['tipoPedido'],
-        where: {
-          fechaRegistro: where.fechaRegistro,
-          estado: { not: 'ANULADO' },
-        },
+        where: wherePeriodoActivos,
         _count: { _all: true },
       }),
 
-      prisma.pagoDetalle.findMany({
+      prisma.pagoDetalle.groupBy({
+        by: ['metodoPago', 'bancoId'],
         where: {
-          pedido: {
-            fechaRegistro: where.fechaRegistro,
-            estado: { not: 'ANULADO' },
-          },
+          pedido: wherePeriodoActivos,
         },
-        include: {
-          banco: true,
+        _sum: { monto: true },
+        _count: { _all: true },
+      }),
+
+      prisma.banco.findMany({
+        select: { id: true, nombre: true },
+      }),
+
+      prisma.pedidoDetalle.groupBy({
+        by: ['productoId'],
+        where: {
+          pedido: wherePeriodoActivos,
+        },
+        _sum: {
+          cantidad: true,
+          subtotal: true,
         },
       }),
 
-      prisma.pedidoDetalle.findMany({
-        where: {
-          pedido: {
-            fechaRegistro: where.fechaRegistro,
-            estado: { not: 'ANULADO' },
-          },
-        },
-        include: {
-          producto: {
-            include: {
-              categoria: true,
-            },
+      prisma.producto.findMany({
+        select: {
+          id: true,
+          nombre: true,
+          costoBase: true,
+          categoria: {
+            select: { nombre: true },
           },
         },
       }),
@@ -578,6 +591,10 @@ export const ventaService = {
       }
     })
 
+    const mapaNombresBancos = new Map<string, string>(
+      bancosCatalogo.map((b) => [b.id, b.nombre])
+    )
+
     let totalEfectivo = 0
     let totalBancos = 0
     const mapaBancos = new Map<
@@ -585,25 +602,29 @@ export const ventaService = {
       { bancoId: string; nombre: string; totalMonto: number; cantidadPedidos: number }
     >()
 
-    pagosActivos.forEach((pago) => {
-      if (pago.metodoPago.toUpperCase().includes('EFECTIVO')) {
-        totalEfectivo += pago.monto
+    pagosAgrupados.forEach((grupo) => {
+      const montoGrupo = Number(grupo._sum.monto || 0)
+      const conteoGrupo = Number(grupo._count._all || 0)
+
+      if (grupo.metodoPago.toUpperCase().includes('EFECTIVO')) {
+        totalEfectivo += montoGrupo
       } else {
-        totalBancos += pago.monto
-        const claveBanco = pago.bancoId || 'SIN_BANCO'
+        totalBancos += montoGrupo
+        const claveBanco = grupo.bancoId || 'SIN_BANCO'
         const nombreBanco =
-          pago.banco?.nombre ||
-          (pago.bancoId ? pago.bancoId.toUpperCase() : 'Sin entidad asignada')
+          (grupo.bancoId ? mapaNombresBancos.get(grupo.bancoId) : undefined) ||
+          (grupo.bancoId ? grupo.bancoId.toUpperCase() : 'Sin entidad asignada')
+
         const existente = mapaBancos.get(claveBanco)
         if (existente) {
-          existente.totalMonto += pago.monto
-          existente.cantidadPedidos += 1
+          existente.totalMonto += montoGrupo
+          existente.cantidadPedidos += conteoGrupo
         } else {
           mapaBancos.set(claveBanco, {
             bancoId: claveBanco,
             nombre: nombreBanco,
-            totalMonto: pago.monto,
-            cantidadPedidos: 1,
+            totalMonto: montoGrupo,
+            cantidadPedidos: conteoGrupo,
           })
         }
       }
@@ -613,51 +634,40 @@ export const ventaService = {
       (a, b) => b.totalMonto - a.totalMonto
     )
 
-    const mapaProductos = new Map<
-      string,
-      {
-        productoId: number | null
-        nombre: string
-        categoriaNombre: string
-        cantidadVendida: number
-        totalGenerado: number
-        gananciaEstimada: number
-      }
-    >()
+    const mapaInfoProductos = new Map(
+      productosCatalogo.map((p) => [
+        p.id,
+        {
+          nombre: p.nombre,
+          categoriaNombre: p.categoria?.nombre || 'Varios',
+          costoBase: Number(p.costoBase || 0),
+        },
+      ])
+    )
 
     let totalUnidadesVendidas = 0
+    const rankingProductos = productosAgrupados
+      .map((grupo) => {
+        const cant = Number(grupo._sum.cantidad || 0)
+        const subtotalGrupo = Number(grupo._sum.subtotal || 0)
+        totalUnidadesVendidas += cant
 
-    detallesVendidos.forEach((d) => {
-      const clave = d.productoId ? `prod-${d.productoId}` : `libre-${d.observaciones || 'item'}`
-      const nombreProd = d.producto?.nombre || 'Ítem Libre / Varios'
-      const catNombre = d.producto?.categoria?.nombre || 'Varios'
-      const costoUnitario = Number(d.producto?.costoBase || 0)
-      const subtotalItem = Number(d.subtotal || d.precioUnitario * d.cantidad)
-      const gananciaItem =
-        costoUnitario > 0 ? subtotalItem - costoUnitario * d.cantidad : 0
+        const info = grupo.productoId !== null ? mapaInfoProductos.get(grupo.productoId) : undefined
+        const nombreProd = info?.nombre || 'Ítem Libre / Varios'
+        const catNombre = info?.categoriaNombre || 'Varios'
+        const costoUnitario = info?.costoBase || 0
+        const gananciaEstimada = costoUnitario > 0 ? subtotalGrupo - costoUnitario * cant : 0
 
-      totalUnidadesVendidas += d.cantidad
-
-      const existente = mapaProductos.get(clave)
-      if (existente) {
-        existente.cantidadVendida += d.cantidad
-        existente.totalGenerado += subtotalItem
-        existente.gananciaEstimada += gananciaItem
-      } else {
-        mapaProductos.set(clave, {
-          productoId: d.productoId ?? null,
+        return {
+          productoId: grupo.productoId ?? null,
           nombre: nombreProd,
           categoriaNombre: catNombre,
-          cantidadVendida: d.cantidad,
-          totalGenerado: subtotalItem,
-          gananciaEstimada: gananciaItem,
-        })
-      }
-    })
-
-    const rankingProductos = Array.from(mapaProductos.values()).sort(
-      (a, b) => b.cantidadVendida - a.cantidadVendida || b.totalGenerado - a.totalGenerado
-    )
+          cantidadVendida: cant,
+          totalGenerado: subtotalGrupo,
+          gananciaEstimada,
+        }
+      })
+      .sort((a, b) => b.cantidadVendida - a.cantidadVendida || b.totalGenerado - a.totalGenerado)
 
     return {
       datos: this.mapearRespuestaVentas(pedidos),

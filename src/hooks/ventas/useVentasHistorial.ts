@@ -10,29 +10,64 @@ import { Banco, MetodoPago } from '@/types/pos/pos'
 import { useGastosCaja } from './useGastosCaja'
 
 const formatearFechaLocal = (fecha: Date): string => {
-  const year = fecha.getFullYear()
-  const month = String(fecha.getMonth() + 1).padStart(2, '0')
-  const day = String(fecha.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return fecha.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })
+}
+
+// Fecha operativa de la jornada nocturna (margen hasta las 04:00 a. m. hora Colombia)
+const obtenerFechaJornadaActual = (): Date => {
+  return new Date(Date.now() - 4 * 60 * 60 * 1000)
 }
 
 export const useVentasHistorial = () => {
-  const hoyStr = formatearFechaLocal(new Date())
+  const hoyStr = formatearFechaLocal(obtenerFechaJornadaActual())
 
   // Filtros de fecha
-  const [modoFecha, setModoFecha] = useState<ModoFiltroFecha>('UNICA')
-  const [fechaUnica, setFechaUnica] = useState<string>(hoyStr)
-  const [fechaInicio, setFechaInicio] = useState<string>(hoyStr)
-  const [fechaFin, setFechaFin] = useState<string>(hoyStr)
+  const [modoFecha, setModoFechaState] = useState<ModoFiltroFecha>('UNICA')
+  const [fechaUnica, setFechaUnicaState] = useState<string>(hoyStr)
+  const [fechaInicio, setFechaInicioState] = useState<string>(hoyStr)
+  const [fechaFin, setFechaFinState] = useState<string>(hoyStr)
 
   // Filtros adicionales y paginación
-  const [tipoPedidoFiltro, setTipoPedidoFiltro] = useState<string>('TODOS')
-  const [filtroEstadoVenta, setFiltroEstadoVenta] = useState<FiltroEstadoVenta>('TODOS')
-  const [bancoFiltro, setBancoFiltro] = useState<string>('TODOS')
-  const [busqueda, setBusqueda] = useState('')
+  const [tipoPedidoFiltro, setTipoPedidoFiltroState] = useState<string>('TODOS')
+  const [filtroEstadoVenta, setFiltroEstadoVentaState] = useState<FiltroEstadoVenta>('TODOS')
+  const [bancoFiltro, setBancoFiltroState] = useState<string>('TODOS')
+  const [busqueda, setBusquedaState] = useState('')
   const [paginaActual, setPaginaActual] = useState(1)
   const [totalPaginas, setTotalPaginas] = useState(1)
   const [totalRegistros, setTotalRegistros] = useState(0)
+
+  const setModoFecha = useCallback((v: ModoFiltroFecha) => {
+    setPaginaActual(1)
+    setModoFechaState(v)
+  }, [])
+  const setFechaUnica = useCallback((v: string) => {
+    setPaginaActual(1)
+    setFechaUnicaState(v)
+  }, [])
+  const setFechaInicio = useCallback((v: string) => {
+    setPaginaActual(1)
+    setFechaInicioState(v)
+  }, [])
+  const setFechaFin = useCallback((v: string) => {
+    setPaginaActual(1)
+    setFechaFinState(v)
+  }, [])
+  const setTipoPedidoFiltro = useCallback((v: string) => {
+    setPaginaActual(1)
+    setTipoPedidoFiltroState(v)
+  }, [])
+  const setFiltroEstadoVenta = useCallback((v: FiltroEstadoVenta) => {
+    setPaginaActual(1)
+    setFiltroEstadoVentaState(v)
+  }, [])
+  const setBancoFiltro = useCallback((v: string) => {
+    setPaginaActual(1)
+    setBancoFiltroState(v)
+  }, [])
+  const setBusqueda = useCallback((v: string) => {
+    setPaginaActual(1)
+    setBusquedaState(v)
+  }, [])
 
   // Fila expandida para ver productos
   const [ventaExpandidaId, setVentaExpandidaId] = useState<number | null>(null)
@@ -83,7 +118,7 @@ export const useVentasHistorial = () => {
     cargarMetodosYBancos()
   }, [])
 
-  // Función principal para consultar ventas y gastos filtrados desde el Backend
+  // Función principal para consultar ventas filtradas desde el Backend
   const cargarVentas = useCallback(async () => {
     setCargando(true)
 
@@ -120,10 +155,8 @@ export const useVentasHistorial = () => {
           )
         }
       }
-
-      await gastosHook.consultarTotalGastos(inicio, fin)
     } catch (error) {
-      console.error('Error cargando ventas y gastos:', error)
+      console.error('Error cargando ventas:', error)
     } finally {
       setCargando(false)
     }
@@ -139,27 +172,27 @@ export const useVentasHistorial = () => {
     paginaActual,
   ])
 
+  const recargarArqueoCompleto = useCallback(async () => {
+    const inicio = modoFecha === 'UNICA' ? fechaUnica : fechaInicio
+    const fin = modoFecha === 'UNICA' ? fechaUnica : fechaFin
+    await Promise.all([cargarVentas(), gastosHook.consultarTotalGastos(inicio, fin)])
+  }, [modoFecha, fechaUnica, fechaInicio, fechaFin, cargarVentas])
+
   const gastosHook = useGastosCaja({
     modoFecha,
     fechaUnica,
     fechaInicio,
     fechaFin,
     hoyStr,
-    onRecargarArqueo: cargarVentas,
+    onRecargarArqueo: recargarArqueoCompleto,
   })
 
+  // Consultar gastos únicamente cuando cambia el rango de fechas
   useEffect(() => {
-    setPaginaActual(1)
-  }, [
-    modoFecha,
-    fechaUnica,
-    fechaInicio,
-    fechaFin,
-    busqueda,
-    tipoPedidoFiltro,
-    filtroEstadoVenta,
-    bancoFiltro,
-  ])
+    const inicio = modoFecha === 'UNICA' ? fechaUnica : fechaInicio
+    const fin = modoFecha === 'UNICA' ? fechaUnica : fechaFin
+    gastosHook.consultarTotalGastos(inicio, fin)
+  }, [modoFecha, fechaUnica, fechaInicio, fechaFin, gastosHook.consultarTotalGastos])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -169,35 +202,35 @@ export const useVentasHistorial = () => {
     return () => clearTimeout(timer)
   }, [cargarVentas])
 
-  // Accesos rápidos de fecha
+  // Accesos rápidos de fecha (respetando jornada nocturna)
   const handleIrAHoy = () => {
     setModoFecha('UNICA')
-    setFechaUnica(hoyStr)
+    setFechaUnica(formatearFechaLocal(obtenerFechaJornadaActual()))
   }
 
   const handleIrAAyer = () => {
-    const ayer = new Date()
+    const ayer = obtenerFechaJornadaActual()
     ayer.setDate(ayer.getDate() - 1)
     setModoFecha('UNICA')
     setFechaUnica(formatearFechaLocal(ayer))
   }
 
   const handleIrAEstaSemana = () => {
-    const hoy = new Date()
-    const dia = hoy.getDay()
-    const diff = hoy.getDate() - dia + (dia === 0 ? -6 : 1)
-    const primerDia = new Date(new Date().setDate(diff))
+    const base = obtenerFechaJornadaActual()
+    const dia = base.getDay()
+    const diff = base.getDate() - dia + (dia === 0 ? -6 : 1)
+    const primerDia = new Date(new Date(base).setDate(diff))
     setModoFecha('RANGO')
     setFechaInicio(formatearFechaLocal(primerDia))
-    setFechaFin(hoyStr)
+    setFechaFin(formatearFechaLocal(base))
   }
 
   const handleIrAEsteMes = () => {
-    const hoy = new Date()
-    const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+    const base = obtenerFechaJornadaActual()
+    const primerDia = new Date(base.getFullYear(), base.getMonth(), 1)
     setModoFecha('RANGO')
     setFechaInicio(formatearFechaLocal(primerDia))
-    setFechaFin(hoyStr)
+    setFechaFin(formatearFechaLocal(base))
   }
 
   const toggleExpandir = (id: number) => {
@@ -376,7 +409,7 @@ export const useVentasHistorial = () => {
     handleConfirmarDesanulacion,
     handleConfirmarCambioPago,
     handleExportarCsv,
-    recargarVentas: cargarVentas,
+    recargarVentas: recargarArqueoCompleto,
     ...gastosHook,
   }
 }

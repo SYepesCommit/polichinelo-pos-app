@@ -1,16 +1,18 @@
 import { modulosDashboardView } from '@/config/navigation'
 import { DashboardViewProps } from '@/types/pos/dashboard.types'
-import { Lock, KeyRound, CloudUpload, RefreshCw, CheckCircle2, DownloadCloud } from 'lucide-react'
+import { Lock, KeyRound, CloudUpload, RefreshCw, CheckCircle2, DownloadCloud, BookOpen } from 'lucide-react'
 import React, { useState, useEffect } from 'react'
 import { CambiarPinModal } from '@/components/CambiarPinModal'
 import { BackupModal } from '@/components/BackupModal'
 import { PinSupervisorModal } from '@/components/PinSupervisorModal'
+import { ManualUsuarioModal } from '@/components/ManualUsuarioModal'
 import packageInfo from '../../../package.json'
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectModulo }) => {
   const [modalCambiarPinAbierto, setModalCambiarPinAbierto] = useState(false)
   const [pidiendoPinBackup, setPidiendoPinBackup] = useState(false)
   const [modalBackupAbierto, setModalBackupAbierto] = useState(false)
+  const [modalManualAbierto, setModalManualAbierto] = useState(false)
 
   // Estado del auto-updater
   const [infoUpdater, setInfoUpdater] = useState<{
@@ -56,7 +58,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectModulo }) 
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setModalManualAbierto(true)}
+              className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/40 text-slate-300 hover:text-amber-400 text-xs font-extrabold uppercase tracking-wider transition active:scale-95 shadow-lg"
+              title="Abrir guía paso a paso de uso del sistema"
+            >
+              <BookOpen className="w-4 h-4 text-amber-400" />
+              <span>Manual de Uso</span>
+            </button>
+
             <button
               type="button"
               disabled={infoUpdater.estado === 'comprobando' || infoUpdater.estado === 'descargando'}
@@ -214,6 +226,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onSelectModulo }) 
 
       {modalBackupAbierto && (
         <BackupModal onCerrar={() => setModalBackupAbierto(false)} />
+      )}
+
+      {modalManualAbierto && (
+        <ManualUsuarioModal onCerrar={() => setModalManualAbierto(false)} />
       )}
     </div>
   )

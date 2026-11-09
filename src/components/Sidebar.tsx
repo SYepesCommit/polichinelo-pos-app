@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
+import { BookOpen } from 'lucide-react'
 import { SidebarProps } from '../types/sidebar'
 import { MENU_ITEMS } from '../config/navigation'
 import logoPolichinelo from '@/assets/logoPoli.png'
 import packageInfo from '../../package.json'
+import { ManualUsuarioModal } from './ManualUsuarioModal'
 
 export const Sidebar: React.FC<SidebarProps> = ({ moduloActivo, setModuloActivo }) => {
   const [itemPresionado, setItemPresionado] = useState<string | null>(null)
+  const [manualAbierto, setManualAbierto] = useState(false)
 
   return (
     <aside className="w-20 bg-slate-950 border-r border-slate-800 flex flex-col justify-between items-center py-6 h-screen select-none z-20 shrink-0">
@@ -59,10 +62,26 @@ export const Sidebar: React.FC<SidebarProps> = ({ moduloActivo, setModuloActivo 
         </nav>
       </div>
 
-      {/* FOOTER: VERSIÓN DISCRETA */}
-      <div className="flex flex-col items-center justify-center select-none opacity-40 hover:opacity-100 transition-opacity">
-        <span className="text-[10px] font-bold text-slate-500 tracking-wider">v{packageInfo.version}</span>
+      {/* FOOTER: MANUAL DE USO + VERSIÓN DISCRETA */}
+      <div className="flex flex-col items-center justify-center gap-3 w-full px-3 select-none">
+        <button
+          type="button"
+          onClick={() => setManualAbierto(true)}
+          title="Manual de Uso / Ayuda"
+          className="relative group w-full py-3 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-slate-900 hover:text-amber-400 transition-all active:scale-95"
+        >
+          <BookOpen className="w-5 h-5" />
+          <span className="absolute left-20 bg-slate-900 text-slate-100 text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-700 opacity-0 scale-95 -translate-x-2 group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0 transition-all duration-150 whitespace-nowrap z-50 pointer-events-none shadow-2xl">
+            Manual de Uso
+          </span>
+        </button>
+
+        <span className="text-[10px] font-bold text-slate-500 tracking-wider opacity-50">
+          v{packageInfo.version}
+        </span>
       </div>
+
+      {manualAbierto && <ManualUsuarioModal onCerrar={() => setManualAbierto(false)} />}
     </aside>
   )
 }

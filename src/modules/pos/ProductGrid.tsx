@@ -58,6 +58,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                         : producto.imagenUrl
                     }
                     alt={producto.nombre}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 relative z-10 bg-slate-950"
                     onError={(e) => {
                       // Oculta la etiqueta si falla para evitar mostrar alt roto

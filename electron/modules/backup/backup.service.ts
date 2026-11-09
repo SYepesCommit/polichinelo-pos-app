@@ -29,7 +29,9 @@ function getDefaultBackupDir(): string {
 }
 
 /**
- * Obtiene la fecha y día actual en hora de Colombia (America/Bogota).
+ * Obtiene la fecha y día actual de la jornada en hora de Colombia (America/Bogota).
+ * Nota: Incluye margen de madrugada hasta las 04:00 a. m. para que si el cierre del turno
+ * se hace después de la medianoche (ej. 12:30 a. m.), cuente dentro de la jornada nocturna que termina.
  */
 function obtenerInfoTurnoColombia(ahora = new Date()) {
   const horaColStr = ahora.toLocaleTimeString('en-GB', {
@@ -40,7 +42,9 @@ function obtenerInfoTurnoColombia(ahora = new Date()) {
     second: '2-digit',
   })
 
-  const fechaYMD = ahora.toLocaleDateString('en-CA', {
+  // Restar 4 horas para determinar la fecha operativa de la jornada nocturna (corte 4:00 a.m.)
+  const fechaJornadaRef = new Date(ahora.getTime() - 4 * 60 * 60 * 1000)
+  const fechaYMD = fechaJornadaRef.toLocaleDateString('en-CA', {
     timeZone: 'America/Bogota',
   })
 

@@ -86,6 +86,9 @@ model PedidoDetalle {
   precioUnitario Float
   observaciones  String?
   subtotal       Float
+
+  @@index([pedidoId])
+  @@index([productoId])
 }
 
 model Banco {
@@ -104,6 +107,9 @@ model PagoDetalle {
 
   bancoId    String?
   banco      Banco?  @relation(fields: [bancoId], references: [id])
+
+  @@index([pedidoId])
+  @@index([bancoId])
 }
 
 model Gasto {
@@ -111,6 +117,8 @@ model Gasto {
   descripcion   String
   monto         Float
   fechaRegistro DateTime @default(now())
+
+  @@index([fechaRegistro])
 }
 
 model MetodoPago {

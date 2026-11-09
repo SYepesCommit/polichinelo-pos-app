@@ -5,8 +5,10 @@ const PREFIJO_TRANSF = '[TRANSFERENCIA] '
 export class GastosService {
   private static getRangoUTC5(fechaInicioStr: string, fechaFinStr?: string) {
     const finStr = fechaFinStr || fechaInicioStr
-    const inicio = new Date(`${fechaInicioStr}T00:00:00-05:00`)
-    const fin = new Date(`${finStr}T23:59:59.999-05:00`)
+    // Jornada operativa: desde las 04:00 a.m. del día inicial hasta las 03:59:59.999 a.m. del día siguiente al final
+    const inicio = new Date(`${fechaInicioStr}T04:00:00-05:00`)
+    const baseFin = new Date(`${finStr}T00:00:00-05:00`)
+    const fin = new Date(baseFin.getTime() + 28 * 60 * 60 * 1000 - 1)
     return { inicio, fin }
   }
 
@@ -34,24 +36,18 @@ export class GastosService {
     try {
       const { concepto, monto, fecha, origenFondos = 'EFECTIVO' } = datos
       const ahora = new Date()
-      const hoyColombia = ahora.toLocaleDateString('en-CA', {
+      const fechaJornadaRef = new Date(ahora.getTime() - 4 * 60 * 60 * 1000)
+      const hoyJornadaColombia = fechaJornadaRef.toLocaleDateString('en-CA', {
         timeZone: 'America/Bogota',
       })
 
       let fechaParaGuardar: Date
-      if (!fecha || fecha === hoyColombia) {
-        // Si es del día de hoy, guardar el instante exacto real
+      if (!fecha || fecha === hoyJornadaColombia) {
+        // Si pertenece a la jornada actual, guardar el instante exacto real
         fechaParaGuardar = ahora
       } else {
-        // Si se registra para otra fecha seleccionada en el filtro, conservar la hora actual de Colombia en esa fecha
-        const horaColombia = ahora.toLocaleTimeString('en-GB', {
-          timeZone: 'America/Bogota',
-          hour12: false,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-        })
-        fechaParaGuardar = new Date(`${fecha}T${horaColombia}-05:00`)
+        // Si se registra manualmente en una fecha pasada/distinta del calendario, guardar dentro de esa jornada (18:00 UTC-5)
+        fechaParaGuardar = new Date(`${fecha}T18:00:00-05:00`)
       }
 
       const conceptoLimpio = concepto.trim()

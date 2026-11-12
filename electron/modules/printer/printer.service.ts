@@ -155,11 +155,11 @@ export function generarHtmlComanda(datos: any): string {
   const subtotalHtml =
     datos.costoDomicilio && datos.costoDomicilio > 0
       ? `
-      <div class="row">
+      <div class="row footer-money">
         <span>SUBTOTAL:</span>
         <span>$${Number(datos.subtotal || 0).toLocaleString('es-CO')}</span>
       </div>
-      <div class="row">
+      <div class="row footer-money">
         <span>DOMICILIO:</span>
         <span>$${Number(datos.costoDomicilio || 0).toLocaleString('es-CO')}</span>
       </div>
@@ -190,7 +190,7 @@ export function generarHtmlComanda(datos: any): string {
     }
 
     metodoPagoHtml += `
-      <div class="row" style="margin-top: 4px;">
+      <div class="row footer-money" style="margin-top: 4px;">
         <span>PAGO:</span>
         <span class="font-bold">MIXTO (EFECTIVO + TRANSF.)</span>
       </div>
@@ -202,7 +202,7 @@ export function generarHtmlComanda(datos: any): string {
         ? '  • EN EFECTIVO:'
         : `  • TRANSF.${p.bancoNombre ? ` (${p.bancoNombre.toUpperCase()})` : ''}:`
       metodoPagoHtml += `
-        <div class="row font-bold" style="font-size: 12px;">
+        <div class="row font-bold footer-money-sub">
           <span>${escapeHtml(etiqueta)}</span>
           <span>$${Number(p.monto || 0).toLocaleString('es-CO')}</span>
         </div>
@@ -220,11 +220,11 @@ export function generarHtmlComanda(datos: any): string {
           : Math.max(0, montoRecibidoEfectivo - montoEfvoParte)
 
       metodoPagoHtml += `
-        <div class="row font-bold" style="margin-top: 3px;">
+        <div class="row font-bold footer-money" style="margin-top: 3px;">
           <span>PAGA EFECTIVO CON:</span>
           <span>$${montoRecibidoEfectivo.toLocaleString('es-CO')}</span>
         </div>
-        <div class="row font-bold" style="font-size: 13.5px;">
+        <div class="row font-bold footer-cambio">
           <span>CAMBIO A DEVOLVER:</span>
           <span>$${cambioEfectivo.toLocaleString('es-CO')}</span>
         </div>
@@ -242,7 +242,7 @@ export function generarHtmlComanda(datos: any): string {
         ? `${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
         : datos.metodoPago.toUpperCase()
       metodoPagoHtml = `
-        <div class="row" style="margin-top: 4px;">
+        <div class="row footer-money" style="margin-top: 4px;">
           <span>PAGO:</span>
           <span class="font-bold">${escapeHtml(textoMetodo)}</span>
         </div>
@@ -260,11 +260,11 @@ export function generarHtmlComanda(datos: any): string {
           : Math.max(0, montoRecibidoEfectivo - Number(datos.total || 0))
 
       metodoPagoHtml += `
-        <div class="row font-bold" style="margin-top: 3px;">
+        <div class="row font-bold footer-money" style="margin-top: 3px;">
           <span>PAGA CON (EFECTIVO):</span>
           <span>$${montoRecibidoEfectivo.toLocaleString('es-CO')}</span>
         </div>
-        <div class="row font-bold" style="font-size: 13.5px;">
+        <div class="row font-bold footer-cambio">
           <span>CAMBIO A DEVOLVER:</span>
           <span>$${cambioEfectivo.toLocaleString('es-CO')}</span>
         </div>
@@ -302,35 +302,38 @@ export function generarHtmlComanda(datos: any): string {
       margin: 0;
       padding: 2mm 1.5mm 0 1.5mm;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 18px;
+      font-size: 14px;
       font-weight: bold;
-      line-height: 1.38;
+      line-height: 1.35;
       color: #000;
       background: #fff;
     }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
     .font-bold { font-weight: 900; }
-    .title { font-size: 24px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 3px; }
-    .subtitle { font-size: 17px; font-weight: 900; margin-top: 4px; margin-bottom: 4px; }
-    .divider { border-bottom: 2px dashed #000; margin: 8px 0; }
-    .divider-double { border-bottom: 3px solid #000; margin: 8px 0; }
-    .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
-    .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; font-size: 18.5px; font-weight: 900; }
-    .col-subtotal { white-space: nowrap; font-size: 18.5px; font-weight: 900; }
-    .cliente-box { margin: 7px 0; }
-    .cliente-nombre { font-size: 19px; font-weight: 900; margin-bottom: 5px; }
-    .domicilio-tel { font-size: 19px; font-weight: 900; margin-bottom: 5px; }
-    .domicilio-dir { font-size: 20px; font-weight: 900; margin-bottom: 5px; }
-    .domicilio-ref { font-size: 17.5px; font-weight: 900; margin-top: 2px; }
-    .item-block { margin-bottom: 11px; }
-    .obs-section { padding-left: 6px; margin-top: 5px; font-size: 16.5px; font-weight: 900; }
+    .title { font-size: 18px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .subtitle { font-size: 14px; font-weight: 900; margin-top: 3px; margin-bottom: 3px; }
+    .divider { border-bottom: 2px dashed #000; margin: 6px 0; }
+    .divider-double { border-bottom: 3px solid #000; margin: 6px 0; }
+    .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+    .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; font-size: 20.5px; font-weight: 900; }
+    .col-subtotal { white-space: nowrap; font-size: 20.5px; font-weight: 900; }
+    .cliente-box { margin: 5px 0; }
+    .cliente-nombre { font-size: 14.5px; font-weight: 900; margin-bottom: 3px; }
+    .domicilio-tel { font-size: 14.5px; font-weight: 900; margin-bottom: 3px; }
+    .domicilio-dir { font-size: 15px; font-weight: 900; margin-bottom: 3px; }
+    .domicilio-ref { font-size: 13.5px; font-weight: 900; margin-top: 2px; }
+    .item-block { margin-bottom: 12px; }
+    .obs-section { padding-left: 6px; margin-top: 5px; font-size: 18.5px; font-weight: 900; }
     .obs-title { text-decoration: underline; margin-bottom: 2px; }
     .obs-line { padding-left: 6px; margin-top: 2px; }
-    .total-row { font-size: 23px; font-weight: 900; margin-top: 6px; margin-bottom: 6px; }
-    .cobro-domicilio { font-size: 17px; font-weight: 900; text-align: center; margin: 7px 0; padding: 5px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; }
-    .nota-orden { font-size: 18px; font-weight: 900; margin: 6px 0; }
-    .footer-comanda { font-size: 15px; font-weight: 900; text-align: center; margin-top: 8px; }
+    .total-row { font-size: 16px; font-weight: 900; margin-top: 4px; margin-bottom: 4px; }
+    .footer-money { font-size: 13.5px; margin-bottom: 3px; }
+    .footer-money-sub { font-size: 12.5px; margin-bottom: 3px; }
+    .footer-cambio { font-size: 14px; margin-bottom: 3px; }
+    .cobro-domicilio { font-size: 13.5px; font-weight: 900; text-align: center; margin: 5px 0; padding: 3px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; }
+    .nota-orden { font-size: 15px; font-weight: 900; margin: 5px 0; }
+    .footer-comanda { font-size: 12px; font-weight: 900; text-align: center; margin-top: 5px; }
     .feed-bottom { height: 16mm; }
   </style>
 </head>
@@ -340,15 +343,15 @@ export function generarHtmlComanda(datos: any): string {
   <div class="divider"></div>
 
   <div class="row">
-    <span class="font-bold" style="font-size: 20px;">ORDEN #${datos.consecutivo}</span>
-    <span style="font-size: 15px;">${fechaLimpia}</span>
+    <span class="font-bold" style="font-size: 15.5px;">ORDEN #${datos.consecutivo}</span>
+    <span style="font-size: 12.5px;">${fechaLimpia}</span>
   </div>
   <div class="divider"></div>
 
   ${bloqueClienteHtml}
   <div class="divider"></div>
 
-  <div class="row font-bold" style="font-size: 15.5px; margin-bottom: 5px;">
+  <div class="row font-bold" style="font-size: 13.5px; margin-bottom: 5px;">
     <span>CANT  PRODUCTO</span>
     <span>SUBTOTAL</span>
   </div>

@@ -51,11 +51,11 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
 
   // --- 1. ENCABEZADO SEGÚN EL TIPO DE ORDEN ---
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(21)
+  doc.setFontSize(15)
   doc.text('POLICHINELO POS', centro, y, { align: 'center' })
 
-  y += 8
-  doc.setFontSize(14)
+  y += 6
+  doc.setFontSize(11)
   const tituloTipo =
     datos.tipoPedido === 'DOMICILIO'
       ? 'DESPACHO A DOMICILIO'
@@ -64,50 +64,50 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       : 'SERVICIO EN MESA'
   doc.text(tituloTipo, centro, y, { align: 'center' })
 
-  y += 3.5
+  y += 2.5
   y = dibujarLinea(y, true)
 
   // --- 2. ORDEN, FECHA Y HORA ---
-  y += 5.5
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(17)
-  doc.text(`ORDEN #${datos.consecutivo}`, izquierda, y)
-
-  y += 6.8
+  y += 4.5
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(12.5)
+  doc.text(`ORDEN #${datos.consecutivo}`, izquierda, y)
+
+  y += 5.2
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
   const fechaLimpia = datos.hora
     ? `${datos.fecha.replace(datos.hora, '').trim()} ${datos.hora}`
     : datos.fecha
   doc.text(`FECHA: ${fechaLimpia}`, izquierda, y)
 
-  y += 2.5
+  y += 2
   y = dibujarLinea(y)
 
   // --- 3. DATOS DEL CLIENTE Y ENTREGA (SIEMPRE CON NOMBRE) ---
   const nombreMostrar =
     datos.cliente?.nombre?.trim() || datos.detallesDestino?.trim() || 'Cliente'
 
-  y += 5.5
-  y = escribirTextoConSalto(`CLIENTE: ${nombreMostrar.toUpperCase()}`, izquierda, y, 15, true)
+  y += 4.8
+  y = escribirTextoConSalto(`CLIENTE: ${nombreMostrar.toUpperCase()}`, izquierda, y, 11.5, true)
 
   if (datos.tipoPedido === 'DOMICILIO') {
     const telFormateado = formatearTelefono(datos.cliente?.telefono)
     if (telFormateado) {
-      y += 2
-      y = escribirTextoConSalto(`TEL: ${telFormateado}`, izquierda, y, 15, true)
+      y += 1.5
+      y = escribirTextoConSalto(`TEL: ${telFormateado}`, izquierda, y, 11.5, true)
     }
 
     const dirTexto = datos.cliente?.direccion?.trim()
     if (dirTexto) {
-      y += 2.2
-      y = escribirTextoConSalto(`DIR: ${dirTexto.toUpperCase()}`, izquierda, y, 16, true)
+      y += 1.5
+      y = escribirTextoConSalto(`DIR: ${dirTexto.toUpperCase()}`, izquierda, y, 12, true)
     }
 
     const refTexto = datos.cliente?.referenciaDireccion?.trim()
     if (refTexto) {
-      y += 2
-      y = escribirTextoConSalto(`REF: ${refTexto}`, izquierda, y, 14, true)
+      y += 1.5
+      y = escribirTextoConSalto(`REF: ${refTexto}`, izquierda, y, 11, true)
     }
   }
 
@@ -115,20 +115,20 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   y = dibujarLinea(y)
 
   // --- 4. TABLA DE PRODUCTOS ---
-  y += 5.5
+  y += 4.5
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(13)
+  doc.setFontSize(11)
   doc.text('CANT  PRODUCTO', izquierda, y)
   doc.text('SUBTOTAL', derecha, y, { align: 'right' })
 
-  y += 2.5
+  y += 2
   y = dibujarLinea(y)
 
   // --- 5. ÍTEMS DE LA COMANDA Y ALERTAS DE COCINA ---
-  y += 6
+  y += 6.5
   datos.items.forEach((item) => {
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(15)
+    doc.setFontSize(16.5)
 
     const textoPrecio = `$${Number(item.subtotal || 0).toLocaleString('es-CO')}`
     doc.text(textoPrecio, derecha, y, { align: 'right' })
@@ -137,9 +137,9 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       `${item.cantidad}x ${item.nombre}`,
       izquierda,
       y,
-      15,
+      16.5,
       true,
-      52
+      51
     )
 
     if (item.observaciones && item.observaciones.trim()) {
@@ -180,90 +180,90 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       })
 
       if (carneElegida) {
-        y += 1.8
+        y += 2
         y = escribirTextoConSalto(
           `  • CARNE: ${carneElegida.toUpperCase()}`,
           izquierda,
           y,
-          14,
+          15.5,
           true,
           74
         )
       }
 
       if (listaSalsas.length > 0) {
-        y += 1.8
+        y += 2
         y = escribirTextoConSalto(
           `  • SALSAS: ${listaSalsas.join(', ').toUpperCase()}`,
           izquierda,
           y,
-          13.5,
+          15,
           true,
           74
         )
       }
 
       if (listaSin.length > 0) {
-        y += 2
+        y += 2.2
         doc.setFont('helvetica', 'bold')
-        doc.setFontSize(13.5)
+        doc.setFontSize(15)
         doc.text('  [!] SIN (QUITAR):', izquierda, y)
-        y += 6.5
+        y += 7.2
 
         listaSin.forEach((ing) => {
-          y = escribirTextoConSalto(`    - ${ing.toUpperCase()}`, izquierda, y, 13.5, true, 74)
+          y = escribirTextoConSalto(`    - ${ing.toUpperCase()}`, izquierda, y, 15, true, 74)
         })
       }
 
       if (listaAdiciones.length > 0) {
-        y += 2
+        y += 2.2
         doc.setFont('helvetica', 'bold')
-        doc.setFontSize(13.5)
+        doc.setFontSize(15)
         doc.text('  [+] ADICIONES:', izquierda, y)
-        y += 6.5
+        y += 7.2
 
         listaAdiciones.forEach((adic) => {
-          y = escribirTextoConSalto(`    + ${adic}`, izquierda, y, 13.5, true, 74)
+          y = escribirTextoConSalto(`    + ${adic}`, izquierda, y, 15, true, 74)
         })
       }
 
       if (listaNotas.length > 0) {
-        y += 2
+        y += 2.2
         doc.setFont('helvetica', 'bold')
-        doc.setFontSize(13.5)
+        doc.setFontSize(15)
         doc.text('  [*] NOTA PLATO:', izquierda, y)
-        y += 6.5
+        y += 7.2
 
         listaNotas.forEach((nota) => {
-          y = escribirTextoConSalto(`    * ${nota}`, izquierda, y, 13.5, true, 74)
+          y = escribirTextoConSalto(`    * ${nota}`, izquierda, y, 15, true, 74)
         })
       }
     }
 
-    y += 5
+    y += 5.5
   })
 
   y = dibujarLinea(y, true)
 
-  // --- 6. TOTALES Y MEDIO DE PAGO ---
-  y += 6
+  // --- 6. TOTALES Y MEDIO DE PAGO (FOOTER DE DINERO MÁS COMPACTO) ---
+  y += 4.5
   if (datos.costoDomicilio && datos.costoDomicilio > 0) {
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(14)
+    doc.setFontSize(10.5)
     doc.text('SUBTOTAL:', izquierda, y)
     doc.text(`$${Number(datos.subtotal || 0).toLocaleString('es-CO')}`, derecha, y, {
       align: 'right',
     })
-    y += 7
+    y += 5
     doc.text('DOMICILIO:', izquierda, y)
     doc.text(`$${Number(datos.costoDomicilio || 0).toLocaleString('es-CO')}`, derecha, y, {
       align: 'right',
     })
-    y += 8.5
+    y += 5.8
   }
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(19)
+  doc.setFontSize(13)
   doc.text('TOTAL:', izquierda, y)
   doc.text(`$${Number(datos.total || 0).toLocaleString('es-CO')}`, derecha, y, {
     align: 'right',
@@ -280,21 +280,21 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       p.metodoPago?.toUpperCase().includes('EFECTIVO')
     )
     const montoEfvoParte = Number(pagoEfvo?.monto || 0)
-    y += 8
+    y += 5.5
 
     if (datos.tipoPedido === 'DOMICILIO' && montoEfvoParte > 0) {
       y = escribirTextoConSalto(
         `MIXTO - COBRAR EFECTIVO: $${montoEfvoParte.toLocaleString('es-CO')}`,
         izquierda,
         y,
-        14,
+        10.5,
         true
       )
-      y += 2
+      y += 1.2
     }
 
-    y = escribirTextoConSalto('PAGO: MIXTO (EFECTIVO + TRANSF.)', izquierda, y, 14, true)
-    y += 1.5
+    y = escribirTextoConSalto('PAGO: MIXTO (EFECTIVO + TRANSF.)', izquierda, y, 10.5, true)
+    y += 1
 
     datos.pagos.forEach((p) => {
       const esP_Efvo = p.metodoPago?.toUpperCase().includes('EFECTIVO')
@@ -302,12 +302,12 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         ? '  • EFECTIVO:'
         : `  • TRANSF.${p.bancoNombre ? ` (${p.bancoNombre.toUpperCase()})` : ''}:`
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(13.5)
+      doc.setFontSize(10)
       doc.text(etiqueta, izquierda, y)
       doc.text(`$${Number(p.monto || 0).toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
-      y += 6.8
+      y += 4.8
     })
 
     if (montoEfvoParte > 0) {
@@ -320,38 +320,38 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
           ? Number(datos.cambio)
           : Math.max(0, montoRecibidoEfectivo - montoEfvoParte)
 
-      y += 2
+      y += 1.2
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(14)
+      doc.setFontSize(10.5)
       doc.text('PAGA EFECTIVO CON:', izquierda, y)
       doc.text(`$${montoRecibidoEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
-      y += 7
-      doc.setFontSize(15)
+      y += 5
+      doc.setFontSize(11)
       doc.text('CAMBIO A DEVOLVER:', izquierda, y)
       doc.text(`$${cambioEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
-      y += 3.5
+      y += 2
     }
   } else if (datos.metodoPago) {
     const esEfectivo = datos.metodoPago.toUpperCase().includes('EFECTIVO')
-    y += 8
+    y += 5.5
 
     if (datos.tipoPedido === 'DOMICILIO' && esEfectivo) {
       y = escribirTextoConSalto(
         `COBRAR EN EFECTIVO: $${Number(datos.total || 0).toLocaleString('es-CO')}`,
         izquierda,
         y,
-        14.5,
+        10.5,
         true
       )
     } else {
       const textoPago = datos.bancoNombre
         ? `PAGO: ${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
         : `PAGO: ${datos.metodoPago.toUpperCase()}`
-      y = escribirTextoConSalto(textoPago, izquierda, y, 14.5, true)
+      y = escribirTextoConSalto(textoPago, izquierda, y, 10.5, true)
     }
 
     if (esEfectivo) {
@@ -364,42 +364,42 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
           ? Number(datos.cambio)
           : Math.max(0, montoRecibidoEfectivo - Number(datos.total || 0))
 
-      y += 2.5
+      y += 1.2
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(14)
+      doc.setFontSize(10.5)
       doc.text('PAGA CON (EFECTIVO):', izquierda, y)
       doc.text(`$${montoRecibidoEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
-      y += 7
-      doc.setFontSize(15)
+      y += 5
+      doc.setFontSize(11)
       doc.text('CAMBIO A DEVOLVER:', izquierda, y)
       doc.text(`$${cambioEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
-      y += 3.5
+      y += 2
     }
   }
 
   // --- 8. NOTAS GENERALES DE LA ORDEN ---
   if (datos.observacionesGenerales && datos.observacionesGenerales.trim()) {
-    y += 3
+    y += 2.5
     y = dibujarLinea(y, true)
-    y += 5.5
+    y += 4.8
     y = escribirTextoConSalto(
       `NOTA ORDEN: ${datos.observacionesGenerales.trim().toUpperCase()}`,
       izquierda,
       y,
-      14.5,
+      12,
       true
     )
-    y += 2
+    y += 1.5
     y = dibujarLinea(y, true)
   }
 
-  y += 6.5
+  y += 5
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(12)
+  doc.setFontSize(9.5)
   doc.text('*** COMANDA DE PRODUCCION ***', centro, y, { align: 'center' })
 
   return y + 12

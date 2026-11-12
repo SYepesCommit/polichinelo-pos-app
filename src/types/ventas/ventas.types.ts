@@ -26,6 +26,14 @@ export interface VentaClienteDetalle {
   referenciaDireccion?: string
 }
 
+export interface PagoResumenItem {
+  id?: number
+  metodoPago: string
+  monto: number
+  bancoId?: string | null
+  bancoNombre?: string | null
+}
+
 export interface VentaResumen {
   id: number
   consecutivo: string
@@ -43,6 +51,8 @@ export interface VentaResumen {
   metodoPago: string
   bancoId?: string | null
   bancoNombre?: string | null
+  esMixto?: boolean
+  pagos?: PagoResumenItem[]
   items: VentaItemDetalle[]
   estado: 'COMPLETADO' | 'REALIZADO' | 'ANULADO'
   motivoAnulacion?: string | null
@@ -159,6 +169,9 @@ export interface CambiarMetodoPagoModalProps {
     pedidoId: number
     metodoPago: string
     bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
   }) => Promise<void>
   formatMoneda: (monto: number) => string
 }

@@ -8,6 +8,7 @@ import {
   TipoPedido,
 } from '../../types/pos/pos'
 import { DatosComandaCocina, FormEspecialData } from '../../types/pos/posView.types'
+import { DatosCobroEfectivoOMixto } from '../../types/pos/comandaPanel.types'
 import { usePosCliente } from './usePosCliente'
 import { usePosCarrito } from './usePosCarrito'
 
@@ -77,7 +78,7 @@ export const usePosState = () => {
 
   const handleGenerarComandaTicket = (
     pedidoRespuesta?: any,
-    datosEfectivo?: { montoRecibido?: number; cambio?: number }
+    datosCobro?: DatosCobroEfectivoOMixto
   ) => {
     if (carritoHook.carrito.length === 0 && !pedidoRespuesta) return
 
@@ -90,6 +91,21 @@ export const usePosState = () => {
     }))
 
     const bancoObj = bancos.find((b) => b.id === bancoSeleccionado)
+    const esMixto = Boolean(datosCobro?.esMixto)
+
+    const pagosTicket = esMixto
+      ? [
+          {
+            metodoPago: 'TRANSFERENCIA',
+            monto: Number(datosCobro?.montoTransferenciaMixto || 0),
+            bancoNombre: bancoObj?.nombre || bancoSeleccionado,
+          },
+          {
+            metodoPago: 'EFECTIVO',
+            monto: Number(datosCobro?.montoEfectivoMixto || 0),
+          },
+        ]
+      : undefined
 
     const comandaData: DatosComandaCocina = {
       consecutivo: pedidoRespuesta?.id
@@ -116,18 +132,22 @@ export const usePosState = () => {
       subtotal: carritoHook.subtotalCarrito,
       costoDomicilio: tipoPedido === 'DOMICILIO' ? clienteHook.montoDomicilio : 0,
       total: carritoHook.total,
-      metodoPago: metodoPagoSeleccionado?.nombre || 'EFECTIVO',
-      bancoNombre: metodoPagoSeleccionado?.requiereBanco ? bancoObj?.nombre : undefined,
-      montoRecibido: datosEfectivo?.montoRecibido,
-      cambio: datosEfectivo?.cambio,
+      metodoPago: esMixto ? 'MIXTO' : metodoPagoSeleccionado?.nombre || 'EFECTIVO',
+      bancoNombre:
+        esMixto || metodoPagoSeleccionado?.requiereBanco ? bancoObj?.nombre : undefined,
+      montoRecibido: datosCobro?.montoRecibido,
+      cambio: datosCobro?.cambio,
+      pagos: pagosTicket,
     }
 
     setTicketParaImprimir(comandaData)
     return comandaData
   }
 
-  const handleCobrar = async (datosEfectivo?: { montoRecibido?: number; cambio?: number }) => {
-    if (cobrando || carritoHook.carrito.length === 0 || !metodoPagoSeleccionado) return
+  const handleCobrar = async (datosCobro?: DatosCobroEfectivoOMixto) => {
+    const esMixto = Boolean(datosCobro?.esMixto)
+    if (cobrando || carritoHook.carrito.length === 0 || (!metodoPagoSeleccionado && !esMixto))
+      return
     if (!clienteHook.nombreCliente.trim()) return
 
     if (
@@ -147,14 +167,26 @@ export const usePosState = () => {
         observaciones: item.observaciones || undefined,
       }))
 
-      const pagosPayload: PagoInput[] = [
-        {
-          metodoPagoId: metodoPagoSeleccionado.id,
-          metodoPago: metodoPagoSeleccionado.codigo || metodoPagoSeleccionado.nombre,
-          bancoId: metodoPagoSeleccionado.requiereBanco ? bancoSeleccionado : undefined,
-          monto: carritoHook.total,
-        },
-      ]
+      const pagosPayload: PagoInput[] = esMixto
+        ? [
+            {
+              metodoPago: 'TRANSFERENCIA',
+              bancoId: bancoSeleccionado || undefined,
+              monto: Number(datosCobro?.montoTransferenciaMixto || 0),
+            },
+            {
+              metodoPago: 'EFECTIVO',
+              monto: Number(datosCobro?.montoEfectivoMixto || 0),
+            },
+          ]
+        : [
+            {
+              metodoPagoId: metodoPagoSeleccionado!.id,
+              metodoPago: metodoPagoSeleccionado!.codigo || metodoPagoSeleccionado!.nombre,
+              bancoId: metodoPagoSeleccionado!.requiereBanco ? bancoSeleccionado : undefined,
+              monto: carritoHook.total,
+            },
+          ]
 
       const payload = {
         tipoPedido,
@@ -173,8 +205,8 @@ export const usePosState = () => {
         detalles: detallesPayload,
         pagos: pagosPayload,
         total: carritoHook.total,
-        montoRecibido: datosEfectivo?.montoRecibido,
-        cambio: datosEfectivo?.cambio,
+        montoRecibido: datosCobro?.montoRecibido,
+        cambio: datosCobro?.cambio,
       }
 
       if (!window.electronAPI?.crearPedido) {
@@ -185,7 +217,7 @@ export const usePosState = () => {
         throw new Error('La base de datos no retornó el pedido creado.')
       }
 
-      handleGenerarComandaTicket(pedidoCreado, datosEfectivo)
+      handleGenerarComandaTicket(pedidoCreado, datosCobro)
 
       carritoHook.setCarrito([])
       clienteHook.limpiarDatosCliente()

@@ -255,7 +255,71 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   })
 
   // --- 7. FORMA DE PAGO Y VUELTOS ---
-  if (datos.metodoPago) {
+  const esMixto = Boolean(
+    (Array.isArray(datos.pagos) && datos.pagos.length > 1) ||
+      datos.metodoPago?.toUpperCase().includes('MIXTO')
+  )
+
+  if (esMixto && Array.isArray(datos.pagos) && datos.pagos.length > 0) {
+    const pagoEfvo = datos.pagos.find((p) =>
+      p.metodoPago?.toUpperCase().includes('EFECTIVO')
+    )
+    const montoEfvoParte = Number(pagoEfvo?.monto || 0)
+    y += 4.5
+
+    if (datos.tipoPedido === 'DOMICILIO' && montoEfvoParte > 0) {
+      y = escribirTextoConSalto(
+        `>>> MIXTO - COBRAR EFECTIVO: $${montoEfvoParte.toLocaleString('es-CO')} <<<`,
+        izquierda,
+        y,
+        8.2,
+        true
+      )
+      y += 0.5
+    }
+
+    y = escribirTextoConSalto('PAGO: MIXTO (EFECTIVO + TRANSF.)', izquierda, y, 8.5, true)
+
+    datos.pagos.forEach((p) => {
+      const esP_Efvo = p.metodoPago?.toUpperCase().includes('EFECTIVO')
+      const etiqueta = esP_Efvo
+        ? '  • EN EFECTIVO:'
+        : `  • TRANSF.${p.bancoNombre ? ` (${p.bancoNombre.toUpperCase()})` : ''}:`
+      doc.setFont('courier', 'bold')
+      doc.setFontSize(8)
+      doc.text(etiqueta, izquierda, y)
+      doc.text(`$${Number(p.monto || 0).toLocaleString('es-CO')}`, derecha, y, {
+        align: 'right',
+      })
+      y += 3.6
+    })
+
+    if (montoEfvoParte > 0) {
+      const montoRecibidoEfectivo =
+        datos.montoRecibido && Number(datos.montoRecibido) > 0
+          ? Number(datos.montoRecibido)
+          : montoEfvoParte
+      const cambioEfectivo =
+        datos.cambio !== undefined && datos.cambio !== null
+          ? Number(datos.cambio)
+          : Math.max(0, montoRecibidoEfectivo - montoEfvoParte)
+
+      y += 0.5
+      doc.setFont('courier', 'bold')
+      doc.setFontSize(8.2)
+      doc.text('PAGA EFECTIVO CON:', izquierda, y)
+      doc.text(`$${montoRecibidoEfectivo.toLocaleString('es-CO')}`, derecha, y, {
+        align: 'right',
+      })
+      y += 3.8
+      doc.setFontSize(8.8)
+      doc.text('CAMBIO A DEVOLVER:', izquierda, y)
+      doc.text(`$${cambioEfectivo.toLocaleString('es-CO')}`, derecha, y, {
+        align: 'right',
+      })
+      y += 2
+    }
+  } else if (datos.metodoPago) {
     const esEfectivo = datos.metodoPago.toUpperCase().includes('EFECTIVO')
     y += 4.5
 

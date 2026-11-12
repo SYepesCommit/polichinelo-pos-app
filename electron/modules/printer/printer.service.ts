@@ -166,10 +166,71 @@ export function generarHtmlComanda(datos: any): string {
     `
       : ''
 
-  const esEfectivo = Boolean(datos.metodoPago?.toUpperCase().includes('EFECTIVO'))
+  const esMixto = Boolean(
+    (Array.isArray(datos.pagos) && datos.pagos.length > 1) ||
+      datos.metodoPago?.toUpperCase().includes('MIXTO')
+  )
+  const esEfectivo = Boolean(
+    !esMixto && datos.metodoPago?.toUpperCase().includes('EFECTIVO')
+  )
 
   let metodoPagoHtml = ''
-  if (datos.metodoPago) {
+  if (esMixto && Array.isArray(datos.pagos) && datos.pagos.length > 0) {
+    const pagoEfvo = datos.pagos.find((p: any) =>
+      p.metodoPago?.toUpperCase().includes('EFECTIVO')
+    )
+    const montoEfvoParte = Number(pagoEfvo?.monto || 0)
+
+    if (datos.tipoPedido === 'DOMICILIO' && montoEfvoParte > 0) {
+      metodoPagoHtml += `
+        <div class="cobro-domicilio">
+          &gt;&gt;&gt; MIXTO - COBRAR EFECTIVO: $${montoEfvoParte.toLocaleString('es-CO')} &lt;&lt;&lt;
+        </div>
+      `
+    }
+
+    metodoPagoHtml += `
+      <div class="row" style="margin-top: 4px;">
+        <span>PAGO:</span>
+        <span class="font-bold">MIXTO (EFECTIVO + TRANSF.)</span>
+      </div>
+    `
+
+    datos.pagos.forEach((p: any) => {
+      const esP_Efvo = p.metodoPago?.toUpperCase().includes('EFECTIVO')
+      const etiqueta = esP_Efvo
+        ? '  • EN EFECTIVO:'
+        : `  • TRANSF.${p.bancoNombre ? ` (${p.bancoNombre.toUpperCase()})` : ''}:`
+      metodoPagoHtml += `
+        <div class="row font-bold" style="font-size: 12px;">
+          <span>${escapeHtml(etiqueta)}</span>
+          <span>$${Number(p.monto || 0).toLocaleString('es-CO')}</span>
+        </div>
+      `
+    })
+
+    if (montoEfvoParte > 0) {
+      const montoRecibidoEfectivo =
+        datos.montoRecibido && Number(datos.montoRecibido) > 0
+          ? Number(datos.montoRecibido)
+          : montoEfvoParte
+      const cambioEfectivo =
+        datos.cambio !== undefined && datos.cambio !== null
+          ? Number(datos.cambio)
+          : Math.max(0, montoRecibidoEfectivo - montoEfvoParte)
+
+      metodoPagoHtml += `
+        <div class="row font-bold" style="margin-top: 3px;">
+          <span>PAGA EFECTIVO CON:</span>
+          <span>$${montoRecibidoEfectivo.toLocaleString('es-CO')}</span>
+        </div>
+        <div class="row font-bold" style="font-size: 13.5px;">
+          <span>CAMBIO A DEVOLVER:</span>
+          <span>$${cambioEfectivo.toLocaleString('es-CO')}</span>
+        </div>
+      `
+    }
+  } else if (datos.metodoPago) {
     if (datos.tipoPedido === 'DOMICILIO' && esEfectivo) {
       metodoPagoHtml = `
         <div class="cobro-domicilio">

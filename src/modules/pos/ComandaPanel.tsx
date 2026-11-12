@@ -15,6 +15,7 @@ import {
   Trash2,
   Coins,
   X,
+  Split,
 } from 'lucide-react'
 
 import { ComandaItemCard } from './ComandaItemCard'
@@ -60,6 +61,13 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
     handleVaciarClick,
     montoRecibido,
     setMontoRecibido,
+    esPagoMixto,
+    setEsPagoMixto,
+    montoTransferenciaMixto,
+    setMontoTransferenciaMixto,
+    montoEfectivoMixto,
+    baseEfectivoACobrar,
+    requiereSeleccionarBanco,
     esEfectivo,
     cambio,
     dropdownRef,
@@ -192,15 +200,18 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
             Método de Pago:
           </label>
 
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-3 gap-1.5 mb-3">
             {metodosPago.map((mp: any) => {
-              const esSeleccionado = metodoPagoSeleccionado?.id === mp.id
+              const esSeleccionado = !esPagoMixto && metodoPagoSeleccionado?.id === mp.id
               return (
                 <button
                   key={mp.id}
                   type="button"
-                  onClick={() => setMetodoPagoSeleccionado(mp)}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-2 touch-manipulation active:scale-95 ${
+                  onClick={() => {
+                    setEsPagoMixto(false)
+                    setMetodoPagoSeleccionado(mp)
+                  }}
+                  className={`py-2 px-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 touch-manipulation active:scale-95 ${
                     esSeleccionado
                       ? 'bg-amber-500/20 border-amber-500 text-amber-400'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -211,14 +222,38 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
                 </button>
               )
             })}
+
+            {/* Botón Pago Mixto (Efectivo + Transferencia) */}
+            <button
+              type="button"
+              onClick={() => {
+                setEsPagoMixto(true)
+                if (!montoTransferenciaMixto && total > 0) {
+                  const mitad = Math.floor(total / 2000) * 1000
+                  if (mitad > 0 && mitad < total) {
+                    setMontoTransferenciaMixto(mitad)
+                    setMontoRecibido(total - mitad)
+                  }
+                }
+              }}
+              className={`py-2 px-2 rounded-xl border text-xs font-bold transition flex items-center justify-center gap-1.5 touch-manipulation active:scale-95 ${
+                esPagoMixto
+                  ? 'bg-sky-500/20 border-sky-400 text-sky-300'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+              title="Dividir cobro entre Efectivo y Transferencia"
+            >
+              <Split className="w-4 h-4 shrink-0" />
+              <span className="truncate">Mixto</span>
+            </button>
           </div>
 
-          {/* DROPDOWN DE BANCOS */}
-          {metodoPagoSeleccionado?.requiereBanco && (
+          {/* DROPDOWN DE BANCOS (Transferencia o Mixto) */}
+          {requiereSeleccionarBanco && (
             <div className="mb-3 relative" ref={dropdownRef}>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-[11px] font-bold text-slate-400">
-                  Banco / Entidad Destino:
+                  {esPagoMixto ? 'Banco para la Transferencia:' : 'Banco / Entidad Destino:'}
                 </label>
                 <button
                   type="button"
@@ -282,11 +317,65 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
             </div>
           )}
 
-          {/* CALCULADORA TÁCTIL DE CAMBIO / VUELTOS (EFECTIVO - OBLIGATORIO) */}
-          {esEfectivo && total > 0 && (
+          {/* DESGLOSE DE PAGO MIXTO (TRANSFERENCIA + EFECTIVO) */}
+          {esPagoMixto && total > 0 && (
+            <div className="mb-3 bg-slate-950 p-2.5 rounded-xl border border-sky-500/40 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <QrCode className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span className="text-xs font-extrabold text-slate-200">
+                    Por Transferencia <span className="text-rose-400">*</span>:
+                  </span>
+                </div>
+                <div className="relative w-36 flex items-center">
+                  <span className="absolute left-2.5 text-xs font-bold text-slate-500 pointer-events-none">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={total}
+                    step="1000"
+                    value={montoTransferenciaMixto || ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0
+                      setMontoTransferenciaMixto(val)
+                      const nuevoEfvo = Math.max(0, total - val)
+                      setMontoRecibido(nuevoEfvo)
+                    }}
+                    placeholder="Monto banco..."
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-6 pr-6 py-1 text-xs font-black text-sky-400 text-right focus:outline-none focus:border-sky-500"
+                  />
+                  {montoTransferenciaMixto > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMontoTransferenciaMixto(0)
+                        setMontoRecibido(0)
+                      }}
+                      title="Limpiar transferencia"
+                      className="absolute right-1.5 text-slate-500 hover:text-slate-200 p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-xs">
+                <span className="font-bold text-emerald-300">Restante en Efectivo:</span>
+                <span className="font-black text-emerald-400">
+                  ${formatMoneda(montoEfectivoMixto)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* CALCULADORA TÁCTIL DE CAMBIO / VUELTOS (EFECTIVO O PARTE EN EFECTIVO DEL MIXTO) */}
+          {(esEfectivo || (esPagoMixto && montoEfectivoMixto > 0)) && total > 0 && (
             <div
               className={`mb-3 bg-slate-950 p-2.5 rounded-xl border space-y-2 transition ${
-                !montoRecibido || montoRecibido < total
+                !montoRecibido || montoRecibido < baseEfectivoACobrar
                   ? 'border-amber-500/40'
                   : 'border-emerald-500/40'
               }`}
@@ -295,7 +384,8 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
                 <div className="flex items-center gap-1.5">
                   <Coins className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span className="text-xs font-extrabold text-slate-200">
-                    Paga con <span className="text-rose-400">*</span>:
+                    {esPagoMixto ? 'Paga efectivo con' : 'Paga con'}{' '}
+                    <span className="text-rose-400">*</span>:
                   </span>
                 </div>
                 <div className="relative w-36 flex items-center">
@@ -310,7 +400,7 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
                     onChange={(e) => setMontoRecibido(parseFloat(e.target.value) || 0)}
                     placeholder="Obligatorio..."
                     className={`w-full bg-slate-900 border rounded-lg pl-6 pr-6 py-1 text-xs font-black text-emerald-400 text-right focus:outline-none ${
-                      !montoRecibido || montoRecibido < total
+                      !montoRecibido || montoRecibido < baseEfectivoACobrar
                         ? 'border-amber-500/50 focus:border-amber-400 placeholder:text-amber-500/50'
                         : 'border-slate-800 focus:border-emerald-500'
                     }`}
@@ -332,9 +422,9 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
               <div className="grid grid-cols-5 gap-1 pt-1 border-t border-slate-900">
                 <button
                   type="button"
-                  onClick={() => setMontoRecibido(total)}
+                  onClick={() => setMontoRecibido(baseEfectivoACobrar)}
                   className={`py-1 rounded-lg text-[10px] font-extrabold transition touch-manipulation active:scale-95 ${
-                    montoRecibido === total
+                    montoRecibido === baseEfectivoACobrar
                       ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
                       : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
                   }`}
@@ -396,7 +486,15 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
             type="button"
             onClick={() =>
               onCobrar(
-                esEfectivo && montoRecibido > 0
+                esPagoMixto
+                  ? {
+                      esMixto: true,
+                      montoEfectivoMixto,
+                      montoTransferenciaMixto,
+                      montoRecibido,
+                      cambio: cambio >= 0 ? cambio : 0,
+                    }
+                  : esEfectivo && montoRecibido > 0
                   ? { montoRecibido, cambio: cambio >= 0 ? cambio : 0 }
                   : undefined
               )

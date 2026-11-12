@@ -76,6 +76,9 @@ export interface IElectronAPI {
     pedidoId: number
     metodoPago: string
     bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
   }) => Promise<{ ok: boolean }>
   exportarReporteCsv: (
     filtros: FiltrosHistorial

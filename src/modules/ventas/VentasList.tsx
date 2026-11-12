@@ -15,6 +15,7 @@ import {
   Phone,
   MapPin,
   Navigation,
+  Split,
 } from 'lucide-react'
 import { LoadingScreen } from '@/components/LoadingScreen'
 import { VentasListProps } from '@/types/ventas/ventas.types'
@@ -58,7 +59,8 @@ export const VentasList: React.FC<VentasListProps> = ({
       ) : (
         ventasFiltradas.map((v) => {
           const esAnulado = v.estado === 'ANULADO'
-          const esEfectivo = v.metodoPago?.toUpperCase().includes('EFECTIVO')
+          const esMixto = Boolean(v.esMixto && v.pagos && v.pagos.length > 1)
+          const esEfectivo = !esMixto && v.metodoPago?.toUpperCase().includes('EFECTIVO')
           const estaExpandido = ventaExpandidaId === v.id
           const cantidadItems = (v.items || []).reduce(
             (acc: number, it: any) => acc + (it.cantidad || 1),
@@ -126,15 +128,38 @@ export const VentasList: React.FC<VentasListProps> = ({
                             ? 'Pedido anulado'
                             : 'Toca aquí para cambiar el medio de pago (Requiere PIN)'
                         }
-                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-xl border shadow-sm transition ${
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-xl border shadow-sm transition flex-wrap ${
                           esAnulado
                             ? 'bg-slate-900 text-slate-500 border-slate-800 cursor-default'
+                            : esMixto
+                            ? 'bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border-sky-500/35 hover:border-sky-400 active:scale-95 cursor-pointer'
                             : esEfectivo
                             ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/35 hover:border-emerald-400 active:scale-95 cursor-pointer'
                             : 'bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border-purple-500/35 hover:border-purple-400 active:scale-95 cursor-pointer'
                         }`}
                       >
-                        {esEfectivo ? (
+                        {esMixto ? (
+                          <>
+                            <Split className="w-3.5 h-3.5 text-sky-400" />
+                            <span>Mixto:</span>
+                            {(v.pagos || []).map((pg, idxPg) => {
+                              const pgEfvo = pg.metodoPago?.toUpperCase().includes('EFECTIVO')
+                              return (
+                                <span
+                                  key={idxPg}
+                                  className={`px-1.5 py-0.5 rounded-md font-black uppercase tracking-wide text-[10px] border ${
+                                    pgEfvo
+                                      ? 'bg-emerald-500/25 border-emerald-400/40 text-emerald-200'
+                                      : 'bg-purple-500/30 border-purple-400/40 text-purple-100'
+                                  }`}
+                                >
+                                  {pgEfvo ? 'Efectivo' : pg.bancoNombre || 'Transf'}: $
+                                  {formatMoneda(pg.monto)}
+                                </span>
+                              )
+                            })}
+                          </>
+                        ) : esEfectivo ? (
                           <>
                             <Banknote className="w-3.5 h-3.5" />
                             <span>Efectivo</span>

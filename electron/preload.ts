@@ -48,6 +48,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     pedidoId: number
     metodoPago: string
     bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
   }) => ipcRenderer.invoke('cambiar-metodo-pago-venta', data),
   exportarReporteCsv: (filtros: any) => ipcRenderer.invoke('exportar-reporte-csv', filtros),
   getProductos: () => ipcRenderer.invoke('get-productos'),

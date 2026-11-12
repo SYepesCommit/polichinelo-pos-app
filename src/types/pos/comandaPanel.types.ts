@@ -1,6 +1,14 @@
 import React from 'react'
 import { ItemCarrito, TipoPedido, MetodoPago, Banco, Producto } from './pos'
 
+export interface DatosCobroEfectivoOMixto {
+  montoRecibido?: number
+  cambio?: number
+  esMixto?: boolean
+  montoEfectivoMixto?: number
+  montoTransferenciaMixto?: number
+}
+
 export interface ComandaPanelProps {
   carrito: ItemCarrito[]
   tipoPedido: TipoPedido
@@ -23,7 +31,7 @@ export interface ComandaPanelProps {
   onAgregarItemLibre?: (nombre: string, precio: number) => void
   onVaciarCarrito?: () => void
   cobrando?: boolean
-  onCobrar: (datosEfectivo?: { montoRecibido?: number; cambio?: number }) => void
+  onCobrar: (datosCobro?: DatosCobroEfectivoOMixto) => void
   onActualizarBancos?: () => void
 }
 

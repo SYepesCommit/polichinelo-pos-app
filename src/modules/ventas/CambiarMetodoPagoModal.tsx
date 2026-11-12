@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ArrowLeftRight, X, Banknote, CreditCard, QrCode, Wallet, Building2 } from 'lucide-react'
+import { ArrowLeftRight, X, Banknote, CreditCard, QrCode, Wallet, Building2, Split } from 'lucide-react'
 import { CambiarMetodoPagoModalProps } from '@/types/ventas/ventas.types'
 import { PinSupervisorModal } from '@/components/PinSupervisorModal'
 
@@ -12,6 +12,8 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
   formatMoneda,
 }) => {
   const [metodoSeleccionado, setMetodoSeleccionado] = useState<string>('EFECTIVO')
+  const [esMixto, setEsMixto] = useState<boolean>(false)
+  const [montoTransferencia, setMontoTransferencia] = useState<number>(0)
   const [requiereBanco, setRequiereBanco] = useState<boolean>(false)
   const [bancoSeleccionadoId, setBancoSeleccionadoId] = useState<string>('')
   const [pidiendoPin, setPidiendoPin] = useState(false)
@@ -20,19 +22,29 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
   useEffect(() => {
     if (!venta) return
 
-    const metodoActualObj = metodosPago.find(
-      (m) =>
-        m.codigo.toUpperCase() === venta.metodoPago.toUpperCase() ||
-        m.nombre.toUpperCase() === venta.metodoPago.toUpperCase()
-    )
-
-    if (metodoActualObj) {
-      setMetodoSeleccionado(metodoActualObj.codigo || metodoActualObj.nombre)
-      setRequiereBanco(Boolean(metodoActualObj.requiereBanco))
+    if (venta.esMixto && Array.isArray(venta.pagos) && venta.pagos.length > 1) {
+      setEsMixto(true)
+      setMetodoSeleccionado('MIXTO')
+      setRequiereBanco(true)
+      const pgTransf = venta.pagos.find((p) => !p.metodoPago.toUpperCase().includes('EFECTIVO'))
+      setMontoTransferencia(Number(pgTransf?.monto || 0))
     } else {
-      const esEfvo = venta.metodoPago.toUpperCase().includes('EFECTIVO')
-      setMetodoSeleccionado(esEfvo ? 'EFECTIVO' : 'TRANSFERENCIA')
-      setRequiereBanco(!esEfvo)
+      setEsMixto(false)
+      const metodoActualObj = metodosPago.find(
+        (m) =>
+          m.codigo.toUpperCase() === venta.metodoPago.toUpperCase() ||
+          m.nombre.toUpperCase() === venta.metodoPago.toUpperCase()
+      )
+
+      if (metodoActualObj) {
+        setMetodoSeleccionado(metodoActualObj.codigo || metodoActualObj.nombre)
+        setRequiereBanco(Boolean(metodoActualObj.requiereBanco))
+      } else {
+        const esEfvo = venta.metodoPago.toUpperCase().includes('EFECTIVO')
+        setMetodoSeleccionado(esEfvo ? 'EFECTIVO' : 'TRANSFERENCIA')
+        setRequiereBanco(!esEfvo)
+      }
+      setMontoTransferencia(Math.floor(venta.montoTotal / 2000) * 1000)
     }
 
     if (venta.bancoId) {
@@ -44,6 +56,8 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
 
   if (!venta) return null
 
+  const montoEfectivoMixto = Math.max(0, venta.montoTotal - montoTransferencia)
+
   const getIcono = (codigo: string) => {
     const c = codigo.toUpperCase()
     if (c.includes('TRANSFERENCIA') || c.includes('NEQUI')) return <QrCode className="w-4 h-4" />
@@ -53,10 +67,23 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
   }
 
   const handleSeleccionarMetodo = (mp: { codigo: string; nombre: string; requiereBanco: boolean }) => {
+    setEsMixto(false)
     setMetodoSeleccionado(mp.codigo || mp.nombre)
     setRequiereBanco(Boolean(mp.requiereBanco))
     if (mp.requiereBanco && !bancoSeleccionadoId && bancos.length > 0) {
       setBancoSeleccionadoId(bancos[0].id)
+    }
+  }
+
+  const handleSeleccionarMixto = () => {
+    setEsMixto(true)
+    setMetodoSeleccionado('MIXTO')
+    setRequiereBanco(true)
+    if (!bancoSeleccionadoId && bancos.length > 0) {
+      setBancoSeleccionadoId(bancos[0].id)
+    }
+    if (!montoTransferencia || montoTransferencia >= venta.montoTotal) {
+      setMontoTransferencia(Math.floor(venta.montoTotal / 2000) * 1000)
     }
   }
 
@@ -66,8 +93,11 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
     try {
       await onConfirmarCambio({
         pedidoId: venta.id,
-        metodoPago: metodoSeleccionado,
-        bancoId: requiereBanco ? bancoSeleccionadoId || null : null,
+        metodoPago: esMixto ? 'MIXTO' : metodoSeleccionado,
+        bancoId: requiereBanco || esMixto ? bancoSeleccionadoId || null : null,
+        esMixto,
+        montoEfectivo: esMixto ? montoEfectivoMixto : undefined,
+        montoTransferencia: esMixto ? montoTransferencia : undefined,
       })
       onCerrar()
     } catch (error) {
@@ -122,16 +152,16 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
           <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-2">
             Selecciona el Nuevo Medio de Pago:
           </label>
-          <div className="grid grid-cols-2 gap-2.5 mb-4">
+          <div className="grid grid-cols-3 gap-2 mb-4">
             {listaMetodos.map((mp) => {
               const valor = mp.codigo || mp.nombre
-              const seleccionado = metodoSeleccionado.toUpperCase() === valor.toUpperCase()
+              const seleccionado = !esMixto && metodoSeleccionado.toUpperCase() === valor.toUpperCase()
               return (
                 <button
                   key={mp.id}
                   type="button"
                   onClick={() => handleSeleccionarMetodo(mp)}
-                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-2 transition active:scale-95 ${
+                  className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition active:scale-95 ${
                     seleccionado
                       ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -142,7 +172,48 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
                 </button>
               )
             })}
+
+            <button
+              type="button"
+              onClick={handleSeleccionarMixto}
+              className={`p-3 rounded-2xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition active:scale-95 ${
+                esMixto
+                  ? 'bg-sky-500/20 border-sky-400 text-sky-300 shadow-sm'
+                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+              }`}
+            >
+              <Split className="w-4 h-4 shrink-0" />
+              <span className="truncate">Mixto</span>
+            </button>
           </div>
+
+          {esMixto && (
+            <div className="mb-4 p-3 rounded-2xl bg-slate-950 border border-sky-500/35 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-extrabold text-slate-200">
+                  Monto Transferencia:
+                </span>
+                <div className="relative w-36 flex items-center">
+                  <span className="absolute left-2.5 text-xs font-bold text-slate-500">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max={venta.montoTotal}
+                    step="1000"
+                    value={montoTransferencia || ''}
+                    onChange={(e) => setMontoTransferencia(parseFloat(e.target.value) || 0)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-6 pr-3 py-1.5 text-xs font-black text-sky-400 text-right focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-xs">
+                <span className="font-bold text-emerald-300">Restante en Efectivo:</span>
+                <span className="font-black text-emerald-400">
+                  ${formatMoneda(montoEfectivoMixto)}
+                </span>
+              </div>
+            </div>
+          )}
 
           {requiereBanco && (
             <div className="mb-5">
@@ -182,7 +253,14 @@ export const CambiarMetodoPagoModal: React.FC<CambiarMetodoPagoModalProps> = ({
             </button>
             <button
               type="button"
-              disabled={guardando || (requiereBanco && !bancoSeleccionadoId)}
+              disabled={
+                guardando ||
+                (requiereBanco && !bancoSeleccionadoId) ||
+                (esMixto &&
+                  (montoTransferencia <= 0 ||
+                    montoTransferencia >= venta.montoTotal ||
+                    montoEfectivoMixto <= 0))
+              }
               onClick={() => setPidiendoPin(true)}
               className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-black transition shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50"
             >

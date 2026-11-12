@@ -270,6 +270,7 @@ export const useVentasHistorial = () => {
       bancoNombre: venta.bancoNombre || undefined,
       montoRecibido: venta.montoRecibido,
       cambio: venta.cambio,
+      pagos: venta.pagos,
       observacionesGenerales: venta.observacionesGenerales || undefined,
     }
 
@@ -320,6 +321,9 @@ export const useVentasHistorial = () => {
     pedidoId: number
     metodoPago: string
     bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
   }) => {
     if (!window.electronAPI?.cambiarMetodoPagoVenta) return
     await window.electronAPI.cambiarMetodoPagoVenta(data)

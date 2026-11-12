@@ -33,6 +33,11 @@ export interface DatosComandaCocina {
   bancoNombre?: string
   montoRecibido?: number
   cambio?: number
+  pagos?: Array<{
+    metodoPago: string
+    monto: number
+    bancoNombre?: string | null
+  }>
 }
 
 export interface FormEspecialData {

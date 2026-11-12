@@ -112,11 +112,14 @@ export const ventaService = {
     }
   },
 
-  // 5. Cambiar método de pago de una venta existente
+  // 5. Cambiar método de pago de una venta existente (soporta pago simple o mixto)
   async cambiarMetodoPagoVenta(data: {
     pedidoId: number
     metodoPago: string
     bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
   }) {
     try {
       const idNum = Number(data.pedidoId)
@@ -132,14 +135,34 @@ export const ventaService = {
       const bancoIdFinal = data.bancoId && data.bancoId.trim() ? data.bancoId.trim() : null
 
       return await prisma.$transaction(async (tx) => {
-        if (pedido.pagos.length > 0) {
-          await tx.pagoDetalle.update({
-            where: { id: pedido.pagos[0].id },
-            data: {
-              metodoPago: data.metodoPago,
-              bancoId: bancoIdFinal,
-            },
-          })
+        await tx.pagoDetalle.deleteMany({
+          where: { pedidoId: idNum },
+        })
+
+        if (data.esMixto) {
+          const montoTransf = Number(data.montoTransferencia || 0)
+          const montoEfvo = Number(data.montoEfectivo || Math.max(0, pedido.total - montoTransf))
+
+          if (montoTransf > 0) {
+            await tx.pagoDetalle.create({
+              data: {
+                pedidoId: idNum,
+                metodoPago: 'TRANSFERENCIA',
+                bancoId: bancoIdFinal,
+                monto: montoTransf,
+              },
+            })
+          }
+          if (montoEfvo > 0) {
+            await tx.pagoDetalle.create({
+              data: {
+                pedidoId: idNum,
+                metodoPago: 'EFECTIVO',
+                bancoId: null,
+                monto: montoEfvo,
+              },
+            })
+          }
         } else {
           await tx.pagoDetalle.create({
             data: {
@@ -280,6 +303,17 @@ export const ventaService = {
             ? `ANULADO: ${v.motivoAnulacion || ''}`
             : v.observacionesGenerales || ''
 
+        const textoMetodoCsv =
+          v.esMixto && Array.isArray(v.pagos) && v.pagos.length > 1
+            ? `MIXTO (${v.pagos
+                .map((pg: any) =>
+                  pg.metodoPago.toUpperCase().includes('EFECTIVO')
+                    ? `Efectivo: $${pg.monto}`
+                    : `${pg.bancoNombre || 'Transf'}: $${pg.monto}`
+                )
+                .join(' + ')})`
+            : v.metodoPago
+
         lineas.push(
           [
             escaparCsv(`#${v.consecutivo}`),
@@ -290,7 +324,7 @@ export const ventaService = {
             escaparCsv(v.nombreCliente),
             escaparCsv(v.cliente?.telefono || ''),
             escaparCsv(v.cliente?.direccion || ''),
-            escaparCsv(v.metodoPago),
+            escaparCsv(textoMetodoCsv),
             escaparCsv(v.bancoNombre || ''),
             v.montoDomicilio || 0,
             v.montoTotal,
@@ -313,7 +347,20 @@ export const ventaService = {
   // 7. Mapeo formateado para la interfaz de ventas con ítems completos
   mapearRespuestaVentas(pedidos: any[]) {
     return pedidos.map((p) => {
-      const primerPago = p.pagos && p.pagos.length > 0 ? p.pagos[0] : null
+      const pagosLista = (p.pagos || []).map((pg: any) => ({
+        id: pg.id,
+        metodoPago: pg.metodoPago || 'Efectivo',
+        monto: Number(pg.monto || 0),
+        bancoId: pg.bancoId || null,
+        bancoNombre: pg.banco?.nombre || pg.bancoId || null,
+      }))
+      const esMixto = pagosLista.length > 1
+      const primerPago = pagosLista.length > 0 ? pagosLista[0] : null
+      const pagoBanco =
+        pagosLista.find(
+          (pg: any) => pg.bancoId || !pg.metodoPago.toUpperCase().includes('EFECTIVO')
+        ) || primerPago
+
       const fechaObj = new Date(p.fechaRegistro)
 
       const fechaColombia = fechaObj.toLocaleDateString('en-CA', {
@@ -380,9 +427,11 @@ export const ventaService = {
             : undefined,
         cambio:
           snapshotDestino?.cambio !== undefined ? Number(snapshotDestino.cambio) : undefined,
-        metodoPago: primerPago?.metodoPago || 'Efectivo',
-        bancoId: primerPago?.bancoId || null,
-        bancoNombre: primerPago?.banco?.nombre || primerPago?.bancoId || null,
+        metodoPago: esMixto ? 'MIXTO' : primerPago?.metodoPago || 'Efectivo',
+        bancoId: pagoBanco?.bancoId || null,
+        bancoNombre: pagoBanco?.bancoNombre || null,
+        esMixto,
+        pagos: pagosLista,
         estado: p.estado || 'REALIZADO',
         motivoAnulacion: p.motivoAnulacion || null,
         items: (p.detalles || []).map((d: any) => ({

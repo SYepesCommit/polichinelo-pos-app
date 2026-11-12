@@ -38,8 +38,10 @@ export const useComandaPanel = ({
   // Confirmación rápida para vaciar comanda
   const [confirmandoVaciar, setConfirmandoVaciar] = useState(false)
 
-  // Calculadora de cambio / vueltos para pagos en efectivo
+  // Calculadora de cambio / vueltos para pagos en efectivo y pagos mixtos
   const [montoRecibido, setMontoRecibido] = useState<number>(0)
+  const [esPagoMixto, setEsPagoMixto] = useState<boolean>(false)
+  const [montoTransferenciaMixto, setMontoTransferenciaMixto] = useState<number>(0)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -52,6 +54,8 @@ export const useComandaPanel = ({
   useEffect(() => {
     if (carrito.length === 0) {
       setMontoRecibido(0)
+      setEsPagoMixto(false)
+      setMontoTransferenciaMixto(0)
       setConfirmandoVaciar(false)
     }
   }, [carrito.length])
@@ -75,13 +79,19 @@ export const useComandaPanel = ({
   }
 
   const esEfectivo = Boolean(
-    metodoPagoSeleccionado &&
+    !esPagoMixto &&
+      metodoPagoSeleccionado &&
       !metodoPagoSeleccionado.requiereBanco &&
       (metodoPagoSeleccionado.codigo?.toUpperCase().includes('EFECTIVO') ||
         metodoPagoSeleccionado.nombre.toUpperCase().includes('EFECTIVO'))
   )
 
-  const cambio = montoRecibido > 0 ? montoRecibido - total : 0
+  const montoEfectivoMixto = esPagoMixto ? Math.max(0, total - montoTransferenciaMixto) : 0
+  const baseEfectivoACobrar = esPagoMixto ? montoEfectivoMixto : total
+  const cambio = montoRecibido > 0 ? montoRecibido - baseEfectivoACobrar : 0
+  const requiereSeleccionarBanco = Boolean(
+    esPagoMixto || metodoPagoSeleccionado?.requiereBanco
+  )
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -121,12 +131,17 @@ export const useComandaPanel = ({
     return true
   }
 
-  const esFormularioValido =
-    carrito.length > 0 &&
-    esClienteValido() &&
-    Boolean(metodoPagoSeleccionado) &&
-    (!metodoPagoSeleccionado?.requiereBanco || Boolean(bancoSeleccionado)) &&
-    (!esEfectivo || (montoRecibido > 0 && montoRecibido >= total))
+  const esPagoValido = esPagoMixto
+    ? Boolean(bancoSeleccionado) &&
+      montoTransferenciaMixto > 0 &&
+      montoTransferenciaMixto < total &&
+      montoEfectivoMixto > 0 &&
+      montoRecibido >= montoEfectivoMixto
+    : Boolean(metodoPagoSeleccionado) &&
+      (!metodoPagoSeleccionado?.requiereBanco || Boolean(bancoSeleccionado)) &&
+      (!esEfectivo || (montoRecibido > 0 && montoRecibido >= total))
+
+  const esFormularioValido = carrito.length > 0 && esClienteValido() && esPagoValido
 
   const getMensajeFaltante = () => {
     if (carrito.length === 0) return null
@@ -138,6 +153,18 @@ export const useComandaPanel = ({
       if (!montoDomicilio || montoDomicilio <= 0)
         return 'Ingresa o selecciona el valor del domicilio'
     }
+    if (esPagoMixto) {
+      if (!bancoSeleccionado) return 'Selecciona el banco para la parte de transferencia'
+      if (!montoTransferenciaMixto || montoTransferenciaMixto <= 0)
+        return 'Ingresa cuánto paga por transferencia'
+      if (montoTransferenciaMixto >= total)
+        return 'El monto de transferencia debe ser menor al total'
+      if (!montoRecibido || montoRecibido <= 0)
+        return 'Ingresa con cuánto paga la parte en efectivo'
+      if (montoRecibido < montoEfectivoMixto)
+        return 'El efectivo recibido no cubre la parte en efectivo'
+      return null
+    }
     if (!metodoPagoSeleccionado) return 'Selecciona un método de pago'
     if (metodoPagoSeleccionado.requiereBanco && !bancoSeleccionado)
       return 'Selecciona el banco destino'
@@ -148,7 +175,7 @@ export const useComandaPanel = ({
     return null
   }
 
-    return {
+  return {
     mostrarModalBancos,
     setMostrarModalBancos,
     dropdownBancosAbierto,
@@ -164,6 +191,13 @@ export const useComandaPanel = ({
     handleVaciarClick,
     montoRecibido,
     setMontoRecibido,
+    esPagoMixto,
+    setEsPagoMixto,
+    montoTransferenciaMixto,
+    setMontoTransferenciaMixto,
+    montoEfectivoMixto,
+    baseEfectivoACobrar,
+    requiereSeleccionarBanco,
     esEfectivo,
     cambio,
     dropdownRef,

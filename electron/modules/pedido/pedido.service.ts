@@ -26,6 +26,8 @@ export const pedidoService = {
       monto: number
     }>
     total: number
+    montoRecibido?: number
+    cambio?: number
   }) {
     try {
       const pedidoCreado = await prisma.$transaction(async (tx) => {
@@ -75,13 +77,22 @@ export const pedidoService = {
           return pagoObj
         })
 
+        const tieneEfectivoDatos =
+          data.montoRecibido !== undefined && Number(data.montoRecibido) > 0
+
         const detallesDestinoSnapshot =
-          data.tipoPedido === 'DOMICILIO' && data.clienteData
+          (data.tipoPedido === 'DOMICILIO' && data.clienteData) || tieneEfectivoDatos
             ? JSON.stringify({
-                nombre: data.clienteData.nombre?.trim() || data.detallesDestino || 'Cliente',
-                telefono: data.clienteData.telefono?.trim() || '',
-                direccion: data.clienteData.direccion?.trim() || '',
-                referenciaDireccion: data.clienteData.referenciaDireccion?.trim() || '',
+                nombre: data.clienteData?.nombre?.trim() || data.detallesDestino || 'Cliente',
+                telefono: data.clienteData?.telefono?.trim() || '',
+                direccion: data.clienteData?.direccion?.trim() || '',
+                referenciaDireccion: data.clienteData?.referenciaDireccion?.trim() || '',
+                ...(tieneEfectivoDatos
+                  ? {
+                      montoRecibido: Number(data.montoRecibido),
+                      cambio: Number(data.cambio || 0),
+                    }
+                  : {}),
               })
             : data.detallesDestino || null
 

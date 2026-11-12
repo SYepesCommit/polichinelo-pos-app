@@ -374,6 +374,12 @@ export const ventaService = {
         detallesDestino: nombreResuelto,
         montoDomicilio: Number(p.montoDomicilio || 0),
         montoTotal: Number(p.total),
+        montoRecibido:
+          snapshotDestino?.montoRecibido !== undefined
+            ? Number(snapshotDestino.montoRecibido)
+            : undefined,
+        cambio:
+          snapshotDestino?.cambio !== undefined ? Number(snapshotDestino.cambio) : undefined,
         metodoPago: primerPago?.metodoPago || 'Efectivo',
         bancoId: primerPago?.bancoId || null,
         bancoNombre: primerPago?.banco?.nombre || primerPago?.bancoId || null,

@@ -135,6 +135,8 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         item.observaciones.includes(' | ') ? ' | ' : '\n'
       )
 
+      let carneElegida = ''
+      const listaSalsas: string[] = []
       const listaSin: string[] = []
       const listaAdiciones: string[] = []
       const listaNotas: string[] = []
@@ -144,7 +146,12 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         const bTrim = bloque.trim()
         const bUpper = bTrim.toUpperCase()
 
-        if (bUpper.startsWith('SIN:') || bUpper.startsWith('SIN ')) {
+        if (bUpper.startsWith('CARNE:')) {
+          carneElegida = bTrim.replace(/^CARNE:\s*/i, '').trim()
+        } else if (bUpper.startsWith('SALSAS:') || bUpper.startsWith('SALSA:')) {
+          const contenido = bTrim.replace(/^SALSAS?:\s*/i, '')
+          contenido.split(',').forEach((s) => s.trim() && listaSalsas.push(s.trim()))
+        } else if (bUpper.startsWith('SIN:') || bUpper.startsWith('SIN ')) {
           const contenido = bTrim.replace(/^SIN:\s*/i, '')
           contenido.split(',').forEach((s) => s.trim() && listaSin.push(s.trim()))
         } else if (bUpper.startsWith('ADICI') || bUpper.startsWith('EXTRA ')) {
@@ -159,6 +166,28 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
           listaNotas.push(bTrim)
         }
       })
+
+      if (carneElegida) {
+        y = escribirTextoConSalto(
+          `  [•] CARNE: ${carneElegida.toUpperCase()}`,
+          izquierda,
+          y,
+          8,
+          true,
+          64
+        )
+      }
+
+      if (listaSalsas.length > 0) {
+        y = escribirTextoConSalto(
+          `  [•] SALSAS: ${listaSalsas.join(', ').toUpperCase()}`,
+          izquierda,
+          y,
+          7.8,
+          true,
+          64
+        )
+      }
 
       if (listaSin.length > 0) {
         doc.setFont('courier', 'bold')
@@ -245,17 +274,27 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       y = escribirTextoConSalto(textoPago, izquierda, y, 8.5, true)
     }
 
-    if (esEfectivo && datos.montoRecibido && datos.montoRecibido > 0) {
+    if (esEfectivo) {
+      const montoRecibidoEfectivo =
+        datos.montoRecibido && Number(datos.montoRecibido) > 0
+          ? Number(datos.montoRecibido)
+          : Number(datos.total || 0)
+      const cambioEfectivo =
+        datos.cambio !== undefined && datos.cambio !== null
+          ? Number(datos.cambio)
+          : Math.max(0, montoRecibidoEfectivo - Number(datos.total || 0))
+
       y += 0.5
       doc.setFont('courier', 'bold')
-      doc.setFontSize(8)
-      doc.text('PAGAN CON:', izquierda, y)
-      doc.text(`$${Number(datos.montoRecibido).toLocaleString('es-CO')}`, derecha, y, {
+      doc.setFontSize(8.2)
+      doc.text('PAGA CON (EFECTIVO):', izquierda, y)
+      doc.text(`$${montoRecibidoEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
       y += 3.8
-      doc.text('DEVUELTA / CAMBIO:', izquierda, y)
-      doc.text(`$${Number(datos.cambio || 0).toLocaleString('es-CO')}`, derecha, y, {
+      doc.setFontSize(8.8)
+      doc.text('CAMBIO A DEVOLVER:', izquierda, y)
+      doc.text(`$${cambioEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
       y += 2

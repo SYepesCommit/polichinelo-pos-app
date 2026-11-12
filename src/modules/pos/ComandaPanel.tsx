@@ -282,13 +282,21 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
             </div>
           )}
 
-          {/* CALCULADORA TÁCTIL DE CAMBIO / VUELTOS (EFECTIVO) */}
+          {/* CALCULADORA TÁCTIL DE CAMBIO / VUELTOS (EFECTIVO - OBLIGATORIO) */}
           {esEfectivo && total > 0 && (
-            <div className="mb-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800 space-y-2">
+            <div
+              className={`mb-3 bg-slate-950 p-2.5 rounded-xl border space-y-2 transition ${
+                !montoRecibido || montoRecibido < total
+                  ? 'border-amber-500/40'
+                  : 'border-emerald-500/40'
+              }`}
+            >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
                   <Coins className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span className="text-xs font-extrabold text-slate-300">Paga con:</span>
+                  <span className="text-xs font-extrabold text-slate-200">
+                    Paga con <span className="text-rose-400">*</span>:
+                  </span>
                 </div>
                 <div className="relative w-36 flex items-center">
                   <span className="absolute left-2.5 text-xs font-bold text-slate-500 pointer-events-none">
@@ -300,8 +308,12 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
                     step="1000"
                     value={montoRecibido || ''}
                     onChange={(e) => setMontoRecibido(parseFloat(e.target.value) || 0)}
-                    placeholder={formatMoneda(total)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-6 pr-6 py-1 text-xs font-black text-emerald-400 text-right focus:outline-none focus:border-emerald-500"
+                    placeholder="Obligatorio..."
+                    className={`w-full bg-slate-900 border rounded-lg pl-6 pr-6 py-1 text-xs font-black text-emerald-400 text-right focus:outline-none ${
+                      !montoRecibido || montoRecibido < total
+                        ? 'border-amber-500/50 focus:border-amber-400 placeholder:text-amber-500/50'
+                        : 'border-slate-800 focus:border-emerald-500'
+                    }`}
                   />
                   {montoRecibido > 0 && (
                     <button
@@ -317,11 +329,11 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
               </div>
 
               {/* Botones rápidos de billetes colombianos */}
-              <div className="grid grid-cols-4 gap-1 pt-1 border-t border-slate-900">
+              <div className="grid grid-cols-5 gap-1 pt-1 border-t border-slate-900">
                 <button
                   type="button"
                   onClick={() => setMontoRecibido(total)}
-                  className={`py-1 rounded-lg text-[11px] font-extrabold transition touch-manipulation active:scale-95 ${
+                  className={`py-1 rounded-lg text-[10px] font-extrabold transition touch-manipulation active:scale-95 ${
                     montoRecibido === total
                       ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
                       : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
@@ -329,14 +341,14 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
                 >
                   Exacto
                 </button>
-                {[20000, 50000, 100000].map((billete) => {
+                {[10000, 20000, 50000, 100000].map((billete) => {
                   const esActivo = montoRecibido === billete
                   return (
                     <button
                       key={billete}
                       type="button"
                       onClick={() => setMontoRecibido(billete)}
-                      className={`py-1 rounded-lg text-[11px] font-extrabold transition touch-manipulation active:scale-95 ${
+                      className={`py-1 rounded-lg text-[10px] font-extrabold transition touch-manipulation active:scale-95 ${
                         esActivo
                           ? 'bg-emerald-500/25 text-emerald-300 border border-emerald-500/50'
                           : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
@@ -357,7 +369,7 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
                       : 'bg-amber-500/10 border-amber-500/30 text-amber-400'
                   }`}
                 >
-                  <span>{cambio >= 0 ? 'Cambio / Vueltos:' : 'Faltan por cubrir:'}</span>
+                  <span>{cambio >= 0 ? 'Cambio a devolver:' : 'Faltan por cubrir:'}</span>
                   <span className="text-sm font-black">
                     ${formatMoneda(Math.abs(cambio))}
                   </span>

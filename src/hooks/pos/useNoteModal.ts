@@ -1,12 +1,78 @@
 import { AdicionConPrecio, UseNoteModalProps, UseNoteModalReturn } from '@/types/pos/noteModal.types'
 import { useState, useEffect } from 'react'
 
+export const OPCIONES_CARNE = ['Pollo', 'Tocineta', 'Churrasco'] as const
+export const OPCIONES_SALSAS = ['Rosada', 'Piña', 'Tártara', 'BBQ', 'Chimichurri'] as const
+
+export function requiereElegirCarne(producto: {
+  nombre?: string
+  ingredientes?: string[]
+}): boolean {
+  const n = (producto.nombre || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  // Excluir perros calientes, salchipapas o porciones (ej. Perro Ranchero usa salchicha ranchera)
+  if (
+    n.includes('perro') ||
+    n.includes('perra') ||
+    n.includes('salchipapa') ||
+    n.includes('chori') ||
+    n.includes('porcion')
+  ) {
+    return false
+  }
+
+  if (
+    n.includes('arepaburg') ||
+    n.includes('descarada') ||
+    n.includes('ranchera') ||
+    n.includes('hamburg') ||
+    n.includes('burger') ||
+    n.includes('burguer')
+  ) {
+    return true
+  }
+
+  if (
+    Array.isArray(producto.ingredientes) &&
+    producto.ingredientes.some((i) => i.toLowerCase().includes('elegir carne'))
+  ) {
+    return true
+  }
+
+  return false
+}
+
+export function detectarCarnePorDefecto(nombreProducto?: string): string {
+  const n = (nombreProducto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (n.includes('de pollo')) return 'Pollo'
+  if (n.includes('de tocineta')) return 'Tocineta'
+  if (n.includes('de churrasco')) return 'Churrasco'
+  return ''
+}
+
 const construirObservacion = (
+  carneSeleccionada: string,
+  salsasSeleccionadas: string[],
   ingredientesSin: string[],
   adicionesPagas: AdicionConPrecio[],
   notasGenerales: string
 ) => {
   const partes: string[] = []
+
+  if (carneSeleccionada.trim()) {
+    partes.push(`CARNE: ${carneSeleccionada.trim()}`)
+  }
+
+  if (salsasSeleccionadas.length > 0) {
+    partes.push(`SALSAS: ${salsasSeleccionadas.join(', ')}`)
+  }
 
   if (ingredientesSin.length > 0) {
     partes.push(`SIN: ${ingredientesSin.join(', ')}`)
@@ -32,40 +98,91 @@ export const useNoteModal = ({
   onGuardarObservacion,
   setProductoAEditar,
 }: UseNoteModalProps): UseNoteModalReturn => {
+  const requiereCarne = requiereElegirCarne(productoAEditar.producto)
+  const [carneSeleccionada, setCarneSeleccionada] = useState<string>(() =>
+    requiereCarne ? detectarCarnePorDefecto(productoAEditar.producto.nombre) : ''
+  )
+  const [salsasSeleccionadas, setSalsasSeleccionadas] = useState<string[]>([])
   const [ingredientesSin, setIngredientesSin] = useState<string[]>([])
   const [adicionesPAGAS, setAdicionesPAGAS] = useState<AdicionConPrecio[]>([])
   const [notasGenerales, setNotasGenerales] = useState<string>('')
 
   useEffect(() => {
+    const reqCarne = requiereElegirCarne(productoAEditar.producto)
+    let carneInicial = reqCarne ? detectarCarnePorDefecto(productoAEditar.producto.nombre) : ''
+    const salsasList: string[] = []
+    const sinList: string[] = []
+    const pagasList: AdicionConPrecio[] = []
+    let notaTexto = ''
+
     if (productoAEditar.observaciones) {
       const partes = productoAEditar.observaciones.split(' | ')
-      const sinList: string[] = []
-      const pagasList: AdicionConPrecio[] = []
-      let notaTexto = ''
 
       partes.forEach((p) => {
-        if (p.startsWith('SIN: ')) {
-          sinList.push(...p.replace('SIN: ', '').split(', ').map((s) => s.trim()))
-        } else if (p.startsWith('ADICIÓN: ')) {
-          const items = p.replace('ADICIÓN: ', '').split(', ').map((a) => a.trim())
+        const pTrim = p.trim()
+        if (pTrim.toUpperCase().startsWith('CARNE:')) {
+          carneInicial = pTrim.replace(/^CARNE:\s*/i, '').trim()
+        } else if (pTrim.toUpperCase().startsWith('SALSAS:')) {
+          const items = pTrim
+            .replace(/^SALSAS:\s*/i, '')
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+          salsasList.push(...items)
+        } else if (pTrim.startsWith('SIN: ')) {
+          sinList.push(
+            ...pTrim
+              .replace('SIN: ', '')
+              .split(', ')
+              .map((s) => s.trim())
+          )
+        } else if (pTrim.startsWith('ADICIÓN: ') || pTrim.startsWith('ADICION: ')) {
+          const items = pTrim
+            .replace(/^ADICI[ÓO]N:\s*/i, '')
+            .split(', ')
+            .map((a) => a.trim())
           items.forEach((item) => {
             const encontrada = adicionesDisponibles.find((ad) => item.startsWith(ad.nombre))
             if (encontrada) {
               pagasList.push(encontrada)
             }
           })
-        } else if (p.startsWith('NOTA: ')) {
-          notaTexto = p.replace('NOTA: ', '').trim()
-        } else {
-          notaTexto = notaTexto ? `${notaTexto}\n${p}` : p
+        } else if (pTrim.startsWith('NOTA: ')) {
+          notaTexto = pTrim.replace('NOTA: ', '').trim()
+        } else if (pTrim) {
+          notaTexto = notaTexto ? `${notaTexto}\n${pTrim}` : pTrim
         }
       })
-
-      setIngredientesSin(sinList)
-      setAdicionesPAGAS(pagasList)
-      setNotasGenerales(notaTexto)
     }
+
+    setCarneSeleccionada(carneInicial)
+    setSalsasSeleccionadas(salsasList)
+    setIngredientesSin(sinList)
+    setAdicionesPAGAS(pagasList)
+    setNotasGenerales(notaTexto)
   }, [productoAEditar, adicionesDisponibles])
+
+  const toggleSalsa = (salsa: string) => {
+    setSalsasSeleccionadas((prev) => {
+      const sinFlag = prev.filter((s) => s !== 'SIN SALSAS')
+      return sinFlag.includes(salsa)
+        ? sinFlag.filter((s) => s !== salsa)
+        : [...sinFlag, salsa]
+    })
+  }
+
+  const seleccionarTodasLasSalsas = () => {
+    setSalsasSeleccionadas((prev) => {
+      const tieneTodas = OPCIONES_SALSAS.every((s) => prev.includes(s))
+      return tieneTodas ? [] : [...OPCIONES_SALSAS]
+    })
+  }
+
+  const seleccionarSinSalsas = () => {
+    setSalsasSeleccionadas((prev) =>
+      prev.includes('SIN SALSAS') ? [] : ['SIN SALSAS']
+    )
+  }
 
   const toggleIngredienteSin = (ing: string) => {
     setIngredientesSin((prev) =>
@@ -87,12 +204,26 @@ export const useNoteModal = ({
   const precioFinalUnitario = precioBase + costoAdiciones
 
   const handleGuardar = () => {
-    const notaFinal = construirObservacion(ingredientesSin, adicionesPAGAS, notasGenerales)
+    if (requiereCarne && !carneSeleccionada.trim()) return
+    const notaFinal = construirObservacion(
+      carneSeleccionada,
+      salsasSeleccionadas,
+      ingredientesSin,
+      adicionesPAGAS,
+      notasGenerales
+    )
     onGuardarObservacion(productoAEditar.idTemp, notaFinal, adicionesPAGAS)
     setProductoAEditar(null)
   }
 
   return {
+    requiereCarne,
+    carneSeleccionada,
+    setCarneSeleccionada,
+    salsasSeleccionadas,
+    toggleSalsa,
+    seleccionarTodasLasSalsas,
+    seleccionarSinSalsas,
     ingredientesSin,
     adicionesPAGAS,
     notasGenerales,

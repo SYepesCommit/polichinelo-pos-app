@@ -158,6 +158,7 @@ export async function ensureDatabaseReady(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "Gasto_fechaRegistro_idx" ON "Gasto"("fechaRegistro")`,
       `CREATE INDEX IF NOT EXISTS "Producto_categoriaId_idx" ON "Producto"("categoriaId")`,
       `CREATE INDEX IF NOT EXISTS "Producto_activo_idx" ON "Producto"("activo")`,
+      `INSERT OR IGNORE INTO "Ingrediente" ("nombre") VALUES ('Salsa Rosada'), ('Salsa de Piña'), ('Salsa Tártara'), ('Salsa BBQ'), ('Salsa Chimichurri')`,
     ]
 
     for (const sql of ddlStatements) {

@@ -55,6 +55,8 @@ export function generarHtmlComanda(datos: any): string {
 
   const itemsHtml = (datos.items || [])
     .map((item: any) => {
+      let carneElegida = ''
+      const listaSalsas: string[] = []
       const listaSin: string[] = []
       const listaAdiciones: string[] = []
       const listaNotas: string[] = []
@@ -68,7 +70,12 @@ export function generarHtmlComanda(datos: any): string {
           const bTrim = bloque.trim()
           const bUpper = bTrim.toUpperCase()
 
-          if (bUpper.startsWith('SIN:') || bUpper.startsWith('SIN ')) {
+          if (bUpper.startsWith('CARNE:')) {
+            carneElegida = bTrim.replace(/^CARNE:\s*/i, '').trim()
+          } else if (bUpper.startsWith('SALSAS:') || bUpper.startsWith('SALSA:')) {
+            const contenido = bTrim.replace(/^SALSAS?:\s*/i, '')
+            contenido.split(',').forEach((s) => s.trim() && listaSalsas.push(s.trim()))
+          } else if (bUpper.startsWith('SIN:') || bUpper.startsWith('SIN ')) {
             const contenido = bTrim.replace(/^SIN:\s*/i, '')
             contenido.split(',').forEach((s) => s.trim() && listaSin.push(s.trim()))
           } else if (bUpper.startsWith('ADICI') || bUpper.startsWith('EXTRA ')) {
@@ -84,6 +91,20 @@ export function generarHtmlComanda(datos: any): string {
           }
         })
       }
+
+      const carneHtml = carneElegida
+        ? `<div class="obs-section">
+            <div class="obs-title">[•] CARNE: ${escapeHtml(carneElegida.toUpperCase())}</div>
+          </div>`
+        : ''
+
+      const salsasHtml =
+        listaSalsas.length > 0
+          ? `<div class="obs-section">
+              <div class="obs-title">[•] SALSAS:</div>
+              <div class="obs-line">${escapeHtml(listaSalsas.join(', ').toUpperCase())}</div>
+            </div>`
+          : ''
 
       const sinHtml =
         listaSin.length > 0
@@ -121,6 +142,8 @@ export function generarHtmlComanda(datos: any): string {
             <span class="col-cant-nombre font-bold">${item.cantidad}x ${escapeHtml(item.nombre)}</span>
             <span class="col-subtotal font-bold">$${Number(item.subtotal || 0).toLocaleString('es-CO')}</span>
           </div>
+          ${carneHtml}
+          ${salsasHtml}
           ${sinHtml}
           ${adicHtml}
           ${notasItemHtml}
@@ -165,15 +188,24 @@ export function generarHtmlComanda(datos: any): string {
       `
     }
 
-    if (esEfectivo && datos.montoRecibido && datos.montoRecibido > 0) {
+    if (esEfectivo) {
+      const montoRecibidoEfectivo =
+        datos.montoRecibido && Number(datos.montoRecibido) > 0
+          ? Number(datos.montoRecibido)
+          : Number(datos.total || 0)
+      const cambioEfectivo =
+        datos.cambio !== undefined && datos.cambio !== null
+          ? Number(datos.cambio)
+          : Math.max(0, montoRecibidoEfectivo - Number(datos.total || 0))
+
       metodoPagoHtml += `
-        <div class="row font-bold" style="margin-top: 2px;">
-          <span>PAGAN CON:</span>
-          <span>$${Number(datos.montoRecibido).toLocaleString('es-CO')}</span>
+        <div class="row font-bold" style="margin-top: 3px;">
+          <span>PAGA CON (EFECTIVO):</span>
+          <span>$${montoRecibidoEfectivo.toLocaleString('es-CO')}</span>
         </div>
-        <div class="row font-bold">
-          <span>DEVUELTA / CAMBIO:</span>
-          <span>$${Number(datos.cambio || 0).toLocaleString('es-CO')}</span>
+        <div class="row font-bold" style="font-size: 13.5px;">
+          <span>CAMBIO A DEVOLVER:</span>
+          <span>$${cambioEfectivo.toLocaleString('es-CO')}</span>
         </div>
       `
     }

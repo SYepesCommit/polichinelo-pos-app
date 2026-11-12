@@ -25,6 +25,13 @@ export interface UseNoteModalProps {
 }
 
 export interface UseNoteModalReturn {
+  requiereCarne: boolean
+  carneSeleccionada: string
+  setCarneSeleccionada: (carne: string) => void
+  salsasSeleccionadas: string[]
+  toggleSalsa: (salsa: string) => void
+  seleccionarTodasLasSalsas: () => void
+  seleccionarSinSalsas: () => void
   ingredientesSin: string[]
   adicionesPAGAS: AdicionConPrecio[]
   notasGenerales: string

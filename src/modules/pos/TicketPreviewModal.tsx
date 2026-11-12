@@ -14,6 +14,7 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
 }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [imprimiendo, setImprimiendo] = useState(false)
+  const [copiasImpresas, setCopiasImpresas] = useState(0)
   const [mensajeEstado, setMensajeEstado] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
 
   useEffect(() => {
@@ -51,10 +52,15 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
       if (window.electronAPI?.imprimirComanda) {
         const res = await window.electronAPI.imprimirComanda(datosTicket)
         if (res?.success) {
-          setMensajeEstado({ tipo: 'ok', texto: '✅ ¡Comanda enviada a la térmica!' })
-          setTimeout(() => {
-            onClose()
-          }, 1000)
+          const nuevoConteo = copiasImpresas + 1
+          setCopiasImpresas(nuevoConteo)
+          setMensajeEstado({
+            tipo: 'ok',
+            texto:
+              nuevoConteo === 1
+                ? '✅ ¡Comanda enviada a la térmica! Puedes imprimir otra copia o cerrar.'
+                : `✅ ¡Copia #${nuevoConteo} enviada a la térmica!`,
+          })
         } else {
           setMensajeEstado({
             tipo: 'error',
@@ -140,7 +146,13 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
             title="Imprimir directamente en la impresora térmica"
           >
             <Printer className="w-4 h-4 stroke-[2.5]" />
-            <span>{imprimiendo ? 'Imprimiendo...' : 'Imprimir'}</span>
+            <span>
+              {imprimiendo
+                ? 'Imprimiendo...'
+                : copiasImpresas > 0
+                  ? `Imprimir otra copia (${copiasImpresas})`
+                  : 'Imprimir'}
+            </span>
           </button>
 
           <button

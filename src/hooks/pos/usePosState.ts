@@ -173,6 +173,8 @@ export const usePosState = () => {
         detalles: detallesPayload,
         pagos: pagosPayload,
         total: carritoHook.total,
+        montoRecibido: datosEfectivo?.montoRecibido,
+        cambio: datosEfectivo?.cambio,
       }
 
       if (!window.electronAPI?.crearPedido) {

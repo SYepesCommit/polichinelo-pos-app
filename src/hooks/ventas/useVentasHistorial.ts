@@ -268,6 +268,8 @@ export const useVentasHistorial = () => {
       total: venta.montoTotal,
       metodoPago: venta.metodoPago,
       bancoNombre: venta.bancoNombre || undefined,
+      montoRecibido: venta.montoRecibido,
+      cambio: venta.cambio,
       observacionesGenerales: venta.observacionesGenerales || undefined,
     }
 

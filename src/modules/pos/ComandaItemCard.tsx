@@ -47,12 +47,60 @@ export const ComandaItemCard: React.FC<ComandaItemCardProps> = ({
               const gTrim = grupo.trim()
               const gUpper = gTrim.toUpperCase()
 
+              const esCarne = gUpper.startsWith('CARNE:')
+              const esSalsas = gUpper.startsWith('SALSAS:') || gUpper.startsWith('SALSA:')
               const esSin = gUpper.startsWith('SIN:') || gUpper.startsWith('SIN ')
               const esAdicion =
                 gUpper.startsWith('ADICIÓN:') ||
                 gUpper.startsWith('ADICION:') ||
                 gUpper.startsWith('EXTRA ')
               const esNota = gUpper.startsWith('NOTA:')
+
+              if (esCarne) {
+                const contenido = gTrim.replace(/^CARNE:\s*/i, '').trim()
+                if (!contenido) return null
+
+                return (
+                  <div
+                    key={idx}
+                    className="bg-amber-500/15 border border-amber-500/35 rounded-xl px-2.5 py-1.5 flex items-center justify-between"
+                  >
+                    <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
+                      CARNE ELEGIDA:
+                    </span>
+                    <span className="bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md text-[11px] font-black uppercase">
+                      {contenido}
+                    </span>
+                  </div>
+                )
+              }
+
+              if (esSalsas) {
+                const contenido = gTrim.replace(/^SALSAS?:\s*/i, '')
+                const items = contenido
+                  .split(',')
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                if (items.length === 0) return null
+
+                return (
+                  <div key={idx} className="bg-sky-500/10 border border-sky-500/25 rounded-xl p-2">
+                    <span className="text-[10px] font-black text-sky-400 uppercase tracking-wider block mb-1">
+                      SALSAS:
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {items.map((it, i) => (
+                        <span
+                          key={i}
+                          className="bg-sky-500/20 text-sky-300 border border-sky-500/30 px-2 py-0.5 rounded-md text-[11px] font-bold"
+                        >
+                          • {it}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )
+              }
 
               if (esSin) {
                 const contenido = gTrim.replace(/^SIN:\s*/i, '')

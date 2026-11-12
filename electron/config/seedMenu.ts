@@ -29,6 +29,11 @@ export async function sembrarMenuInicial(prisma: PrismaClient): Promise<void> {
     'Hogao',
     'Maíz',
     'Salsa de la Casa',
+    'Salsa Rosada',
+    'Salsa de Piña',
+    'Salsa Tártara',
+    'Salsa BBQ',
+    'Salsa Chimichurri',
   ]
 
   const ingMap = new Map<string, number>()

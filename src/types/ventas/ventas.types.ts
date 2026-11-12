@@ -36,6 +36,8 @@ export interface VentaResumen {
   cliente?: VentaClienteDetalle
   montoTotal: number
   montoDomicilio?: number
+  montoRecibido?: number
+  cambio?: number
   detallesDestino?: string | null
   observacionesGenerales?: string | null
   metodoPago: string

@@ -125,7 +125,8 @@ export const useComandaPanel = ({
     carrito.length > 0 &&
     esClienteValido() &&
     Boolean(metodoPagoSeleccionado) &&
-    (!metodoPagoSeleccionado?.requiereBanco || Boolean(bancoSeleccionado))
+    (!metodoPagoSeleccionado?.requiereBanco || Boolean(bancoSeleccionado)) &&
+    (!esEfectivo || (montoRecibido > 0 && montoRecibido >= total))
 
   const getMensajeFaltante = () => {
     if (carrito.length === 0) return null
@@ -140,6 +141,10 @@ export const useComandaPanel = ({
     if (!metodoPagoSeleccionado) return 'Selecciona un método de pago'
     if (metodoPagoSeleccionado.requiereBanco && !bancoSeleccionado)
       return 'Selecciona el banco destino'
+    if (esEfectivo && (!montoRecibido || montoRecibido <= 0))
+      return 'Obligatorio: ingresa con cuánto paga en efectivo'
+    if (esEfectivo && montoRecibido < total)
+      return 'El efectivo recibido es menor al total a pagar'
     return null
   }
 

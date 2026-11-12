@@ -1,11 +1,28 @@
 import { useState } from 'react'
 import { ItemCarrito, Producto, TipoPedido } from '@/types/pos/pos'
+import { requiereElegirCarne } from './useNoteModal'
 
 export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) => {
   const [carrito, setCarrito] = useState<ItemCarrito[]>([])
   const [productoAEditar, setProductoAEditar] = useState<ItemCarrito | null>(null)
 
+  const handleAbrirPersonalizacion = (producto: Producto) => {
+    const borradorNuevo: ItemCarrito = {
+      idTemp: `temp-draft-${Date.now()}`,
+      producto: { ...producto, precioBase: producto.precio },
+      cantidad: 1,
+      observaciones: '',
+    }
+    setProductoAEditar(borradorNuevo)
+  }
+
   const agregarProductoRapido = (producto: Producto) => {
+    // Si es Arepaburguer o Hamburguesa (Descarada, Ranchera, etc.), abrir modal para elegir carne y salsas
+    if (requiereElegirCarne(producto)) {
+      handleAbrirPersonalizacion(producto)
+      return
+    }
+
     setCarrito((prev) => {
       const existeSinNotas = prev.find(
         (item) => item.producto.id === producto.id && !item.observaciones?.trim()
@@ -44,16 +61,6 @@ export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) =>
     setCarrito((prev) => [...prev, itemLibre])
   }
 
-  const handleAbrirPersonalizacion = (producto: Producto) => {
-    const borradorNuevo: ItemCarrito = {
-      idTemp: `temp-draft-${Date.now()}`,
-      producto: { ...producto, precioBase: producto.precio },
-      cantidad: 1,
-      observaciones: '',
-    }
-    setProductoAEditar(borradorNuevo)
-  }
-
   const guardarObservacion = (
     idTemp: string,
     nuevasNotas: string,
@@ -83,6 +90,23 @@ export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) =>
         if (!productoAEditar) return prev
         const precioBase =
           productoAEditar.producto.precioBase ?? productoAEditar.producto.precio
+        const precioFinal = precioBase + extraAdiciones
+
+        // Si ya existe en el carrito el mismo producto con idéntica personalización, sumar +1
+        const itemIdentico = prev.find(
+          (item) =>
+            item.producto.id === productoAEditar.producto.id &&
+            (item.observaciones || '').trim() === notasLimpias &&
+            item.producto.precio === precioFinal
+        )
+        if (itemIdentico) {
+          return prev.map((item) =>
+            item.idTemp === itemIdentico.idTemp
+              ? { ...item, cantidad: item.cantidad + 1 }
+              : item
+          )
+        }
+
         const itemAInsertar: ItemCarrito = {
           ...productoAEditar,
           idTemp: `${productoAEditar.producto.id}-${Date.now()}`,
@@ -90,7 +114,7 @@ export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) =>
           producto: {
             ...productoAEditar.producto,
             precioBase,
-            precio: precioBase + extraAdiciones,
+            precio: precioFinal,
           },
         }
         return [...prev, itemAInsertar]

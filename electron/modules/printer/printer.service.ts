@@ -298,38 +298,39 @@ export function generarHtmlComanda(datos: any): string {
       padding: 0;
     }
     body {
-      width: 70mm;
+      width: 72mm;
       margin: 0;
-      padding: 1mm 2mm 0 2mm;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 13px;
-      line-height: 1.25;
+      padding: 2mm 1.5mm 0 1.5mm;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 18px;
+      font-weight: bold;
+      line-height: 1.38;
       color: #000;
       background: #fff;
     }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
-    .font-bold { font-weight: bold; }
-    .title { font-size: 16px; font-weight: 900; letter-spacing: 0.5px; }
-    .subtitle { font-size: 13px; font-weight: 900; margin-top: 2px; }
-    .divider { border-bottom: 1px dashed #000; margin: 4px 0; }
-    .divider-double { border-bottom: 2px solid #000; margin: 4px 0; }
-    .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
-    .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; }
-    .col-subtotal { white-space: nowrap; }
-    .cliente-box { margin: 4px 0; }
-    .cliente-nombre { font-size: 13.5px; margin-bottom: 2px; }
-    .domicilio-tel { font-size: 13.5px; margin-bottom: 2px; }
-    .domicilio-dir { font-size: 14.5px; font-weight: 900; margin-bottom: 2px; }
-    .domicilio-ref { font-size: 12.5px; font-weight: bold; }
-    .item-block { margin-bottom: 5px; }
-    .obs-section { padding-left: 8px; margin-top: 2px; font-size: 11.5px; font-weight: bold; }
-    .obs-title { text-decoration: underline; }
-    .obs-line { padding-left: 8px; }
-    .total-row { font-size: 15px; font-weight: 900; margin-top: 3px; }
-    .cobro-domicilio { font-size: 12.5px; font-weight: 900; text-align: center; margin: 4px 0; padding: 2px 0; border-top: 1px solid #000; border-bottom: 1px solid #000; }
-    .nota-orden { font-size: 12.5px; font-weight: bold; margin: 3px 0; }
-    .footer-comanda { font-size: 11px; font-weight: bold; text-align: center; margin-top: 5px; }
+    .font-bold { font-weight: 900; }
+    .title { font-size: 24px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 3px; }
+    .subtitle { font-size: 17px; font-weight: 900; margin-top: 4px; margin-bottom: 4px; }
+    .divider { border-bottom: 2px dashed #000; margin: 8px 0; }
+    .divider-double { border-bottom: 3px solid #000; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+    .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; font-size: 18.5px; font-weight: 900; }
+    .col-subtotal { white-space: nowrap; font-size: 18.5px; font-weight: 900; }
+    .cliente-box { margin: 7px 0; }
+    .cliente-nombre { font-size: 19px; font-weight: 900; margin-bottom: 5px; }
+    .domicilio-tel { font-size: 19px; font-weight: 900; margin-bottom: 5px; }
+    .domicilio-dir { font-size: 20px; font-weight: 900; margin-bottom: 5px; }
+    .domicilio-ref { font-size: 17.5px; font-weight: 900; margin-top: 2px; }
+    .item-block { margin-bottom: 11px; }
+    .obs-section { padding-left: 6px; margin-top: 5px; font-size: 16.5px; font-weight: 900; }
+    .obs-title { text-decoration: underline; margin-bottom: 2px; }
+    .obs-line { padding-left: 6px; margin-top: 2px; }
+    .total-row { font-size: 23px; font-weight: 900; margin-top: 6px; margin-bottom: 6px; }
+    .cobro-domicilio { font-size: 17px; font-weight: 900; text-align: center; margin: 7px 0; padding: 5px 0; border-top: 2px solid #000; border-bottom: 2px solid #000; }
+    .nota-orden { font-size: 18px; font-weight: 900; margin: 6px 0; }
+    .footer-comanda { font-size: 15px; font-weight: 900; text-align: center; margin-top: 8px; }
     .feed-bottom { height: 16mm; }
   </style>
 </head>
@@ -339,15 +340,15 @@ export function generarHtmlComanda(datos: any): string {
   <div class="divider"></div>
 
   <div class="row">
-    <span class="font-bold">ORDEN #${datos.consecutivo}</span>
-    <span style="font-size: 11px;">${fechaLimpia}</span>
+    <span class="font-bold" style="font-size: 20px;">ORDEN #${datos.consecutivo}</span>
+    <span style="font-size: 15px;">${fechaLimpia}</span>
   </div>
   <div class="divider"></div>
 
   ${bloqueClienteHtml}
   <div class="divider"></div>
 
-  <div class="row font-bold" style="font-size: 11px; margin-bottom: 4px;">
+  <div class="row font-bold" style="font-size: 15.5px; margin-bottom: 5px;">
     <span>CANT  PRODUCTO</span>
     <span>SUBTOTAL</span>
   </div>

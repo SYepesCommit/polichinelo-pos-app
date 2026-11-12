@@ -34,7 +34,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     x: number,
     posicionY: number,
     fontSize = 14,
-    isBold = true,
+    isBold = false,
     anchoMax = anchoMaximoTexto
   ): number => {
     doc.setFont('helvetica', isBold ? 'bold' : 'normal')
@@ -49,12 +49,53 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     return posicionY
   }
 
-  // --- 1. ENCABEZADO SEGÚN EL TIPO DE ORDEN ---
+  // Escribe "ETIQUETA: " en negrilla (subtítulo) y el contenido en texto normal
+  const escribirSubtituloYValor = (
+    etiqueta: string,
+    valor: string,
+    x: number,
+    posicionY: number,
+    fontSize = 12,
+    anchoMax = anchoMaximoTexto
+  ): number => {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(fontSize)
+    const etiquetaConEspacio = `${etiqueta} `
+    const anchoEtiqueta = doc.getTextWidth(etiquetaConEspacio)
+
+    doc.setFont('helvetica', 'normal')
+    const anchoDisponiblePrimeraLinea = Math.max(20, anchoMax - anchoEtiqueta)
+    const lineasValor: string[] = doc.splitTextToSize(valor, anchoDisponiblePrimeraLinea)
+
+    // Primera línea: etiqueta en negrilla + primera parte del valor en normal
+    doc.setFont('helvetica', 'bold')
+    doc.text(etiquetaConEspacio, x, posicionY)
+    doc.setFont('helvetica', 'normal')
+    if (lineasValor.length > 0) {
+      doc.text(lineasValor[0], x + anchoEtiqueta, posicionY)
+    }
+    posicionY += fontSize * 0.48
+
+    // Si hay más líneas de valor, las ajustamos al ancho completo
+    if (lineasValor.length > 1) {
+      const restoTexto = lineasValor.slice(1).join(' ')
+      const lineasResto: string[] = doc.splitTextToSize(restoTexto, anchoMax)
+      lineasResto.forEach((linea) => {
+        doc.text(linea, x, posicionY)
+        posicionY += fontSize * 0.48
+      })
+    }
+
+    return posicionY
+  }
+
+  // --- 1. ENCABEZADO SEGÚN EL TIPO DE ORDEN (TÍTULOS EN NEGRILLA) ---
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(15)
   doc.text('POLICHINELO POS', centro, y, { align: 'center' })
 
   y += 6
+  doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   const tituloTipo =
     datos.tipoPedido === 'DOMICILIO'
@@ -74,47 +115,45 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   doc.text(`ORDEN #${datos.consecutivo}`, izquierda, y)
 
   y += 5.2
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(10)
   const fechaLimpia = datos.hora
     ? `${datos.fecha.replace(datos.hora, '').trim()} ${datos.hora}`
     : datos.fecha
-  doc.text(`FECHA: ${fechaLimpia}`, izquierda, y)
-
+  escribirSubtituloYValor('FECHA:', fechaLimpia, izquierda, y, 10)
   y += 2
+
   y = dibujarLinea(y)
 
-  // --- 3. DATOS DEL CLIENTE Y ENTREGA (SIEMPRE CON NOMBRE) ---
+  // --- 3. DATOS DEL CLIENTE Y ENTREGA (SUBTÍTULOS EN NEGRILLA, DATOS EN NORMAL) ---
   const nombreMostrar =
     datos.cliente?.nombre?.trim() || datos.detallesDestino?.trim() || 'Cliente'
 
   y += 4.8
-  y = escribirTextoConSalto(`CLIENTE: ${nombreMostrar.toUpperCase()}`, izquierda, y, 11.5, true)
+  y = escribirSubtituloYValor('CLIENTE:', nombreMostrar.toUpperCase(), izquierda, y, 11.5)
 
   if (datos.tipoPedido === 'DOMICILIO') {
     const telFormateado = formatearTelefono(datos.cliente?.telefono)
     if (telFormateado) {
       y += 1.5
-      y = escribirTextoConSalto(`TEL: ${telFormateado}`, izquierda, y, 11.5, true)
+      y = escribirSubtituloYValor('TEL:', telFormateado, izquierda, y, 11.5)
     }
 
     const dirTexto = datos.cliente?.direccion?.trim()
     if (dirTexto) {
       y += 1.5
-      y = escribirTextoConSalto(`DIR: ${dirTexto.toUpperCase()}`, izquierda, y, 12, true)
+      y = escribirSubtituloYValor('DIR:', dirTexto.toUpperCase(), izquierda, y, 12)
     }
 
     const refTexto = datos.cliente?.referenciaDireccion?.trim()
     if (refTexto) {
       y += 1.5
-      y = escribirTextoConSalto(`REF: ${refTexto}`, izquierda, y, 11, true)
+      y = escribirSubtituloYValor('REF:', refTexto, izquierda, y, 11)
     }
   }
 
   y += 1
   y = dibujarLinea(y)
 
-  // --- 4. TABLA DE PRODUCTOS ---
+  // --- 4. TABLA DE PRODUCTOS (SUBTÍTULOS DE COLUMNA EN NEGRILLA) ---
   y += 4.5
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
@@ -127,9 +166,9 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   // --- 5. ÍTEMS DE LA COMANDA Y ALERTAS DE COCINA ---
   y += 6.5
   datos.items.forEach((item) => {
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(16.5)
-
+    // Título del producto en negrilla, precio en normal
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(15.5)
     const textoPrecio = `$${Number(item.subtotal || 0).toLocaleString('es-CO')}`
     doc.text(textoPrecio, derecha, y, { align: 'right' })
 
@@ -181,24 +220,24 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
 
       if (carneElegida) {
         y += 2
-        y = escribirTextoConSalto(
-          `  • CARNE: ${carneElegida.toUpperCase()}`,
+        y = escribirSubtituloYValor(
+          '  • CARNE:',
+          carneElegida.toUpperCase(),
           izquierda,
           y,
-          15.5,
-          true,
+          15,
           74
         )
       }
 
       if (listaSalsas.length > 0) {
         y += 2
-        y = escribirTextoConSalto(
-          `  • SALSAS: ${listaSalsas.join(', ').toUpperCase()}`,
+        y = escribirSubtituloYValor(
+          '  • SALSAS:',
+          listaSalsas.join(', ').toUpperCase(),
           izquierda,
           y,
           15,
-          true,
           74
         )
       }
@@ -211,7 +250,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         y += 7.2
 
         listaSin.forEach((ing) => {
-          y = escribirTextoConSalto(`    - ${ing.toUpperCase()}`, izquierda, y, 15, true, 74)
+          y = escribirTextoConSalto(`    - ${ing.toUpperCase()}`, izquierda, y, 15, false, 74)
         })
       }
 
@@ -223,7 +262,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         y += 7.2
 
         listaAdiciones.forEach((adic) => {
-          y = escribirTextoConSalto(`    + ${adic}`, izquierda, y, 15, true, 74)
+          y = escribirTextoConSalto(`    + ${adic}`, izquierda, y, 15, false, 74)
         })
       }
 
@@ -235,7 +274,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         y += 7.2
 
         listaNotas.forEach((nota) => {
-          y = escribirTextoConSalto(`    * ${nota}`, izquierda, y, 15, true, 74)
+          y = escribirTextoConSalto(`    * ${nota}`, izquierda, y, 15, false, 74)
         })
       }
     }
@@ -251,11 +290,14 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(10.5)
     doc.text('SUBTOTAL:', izquierda, y)
+    doc.setFont('helvetica', 'normal')
     doc.text(`$${Number(datos.subtotal || 0).toLocaleString('es-CO')}`, derecha, y, {
       align: 'right',
     })
     y += 5
+    doc.setFont('helvetica', 'bold')
     doc.text('DOMICILIO:', izquierda, y)
+    doc.setFont('helvetica', 'normal')
     doc.text(`$${Number(datos.costoDomicilio || 0).toLocaleString('es-CO')}`, derecha, y, {
       align: 'right',
     })
@@ -283,17 +325,17 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     y += 5.5
 
     if (datos.tipoPedido === 'DOMICILIO' && montoEfvoParte > 0) {
-      y = escribirTextoConSalto(
-        `MIXTO - COBRAR EFECTIVO: $${montoEfvoParte.toLocaleString('es-CO')}`,
+      y = escribirSubtituloYValor(
+        'MIXTO - COBRAR EFECTIVO:',
+        `$${montoEfvoParte.toLocaleString('es-CO')}`,
         izquierda,
         y,
-        10.5,
-        true
+        10.5
       )
       y += 1.2
     }
 
-    y = escribirTextoConSalto('PAGO: MIXTO (EFECTIVO + TRANSF.)', izquierda, y, 10.5, true)
+    y = escribirSubtituloYValor('PAGO:', 'MIXTO (EFECTIVO + TRANSF.)', izquierda, y, 10.5)
     y += 1
 
     datos.pagos.forEach((p) => {
@@ -301,7 +343,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       const etiqueta = esP_Efvo
         ? '  • EFECTIVO:'
         : `  • TRANSF.${p.bancoNombre ? ` (${p.bancoNombre.toUpperCase()})` : ''}:`
-      doc.setFont('helvetica', 'bold')
+      doc.setFont('helvetica', 'normal')
       doc.setFontSize(10)
       doc.text(etiqueta, izquierda, y)
       doc.text(`$${Number(p.monto || 0).toLocaleString('es-CO')}`, derecha, y, {
@@ -324,12 +366,15 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10.5)
       doc.text('PAGA EFECTIVO CON:', izquierda, y)
+      doc.setFont('helvetica', 'normal')
       doc.text(`$${montoRecibidoEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
       y += 5
+      doc.setFont('helvetica', 'bold')
       doc.setFontSize(11)
       doc.text('CAMBIO A DEVOLVER:', izquierda, y)
+      doc.setFont('helvetica', 'normal')
       doc.text(`$${cambioEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
@@ -340,18 +385,18 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     y += 5.5
 
     if (datos.tipoPedido === 'DOMICILIO' && esEfectivo) {
-      y = escribirTextoConSalto(
-        `COBRAR EN EFECTIVO: $${Number(datos.total || 0).toLocaleString('es-CO')}`,
+      y = escribirSubtituloYValor(
+        'COBRAR EN EFECTIVO:',
+        `$${Number(datos.total || 0).toLocaleString('es-CO')}`,
         izquierda,
         y,
-        10.5,
-        true
+        10.5
       )
     } else {
       const textoPago = datos.bancoNombre
-        ? `PAGO: ${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
-        : `PAGO: ${datos.metodoPago.toUpperCase()}`
-      y = escribirTextoConSalto(textoPago, izquierda, y, 10.5, true)
+        ? `${datos.metodoPago.toUpperCase()} (${datos.bancoNombre.toUpperCase()})`
+        : datos.metodoPago.toUpperCase()
+      y = escribirSubtituloYValor('PAGO:', textoPago, izquierda, y, 10.5)
     }
 
     if (esEfectivo) {
@@ -368,12 +413,15 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(10.5)
       doc.text('PAGA CON (EFECTIVO):', izquierda, y)
+      doc.setFont('helvetica', 'normal')
       doc.text(`$${montoRecibidoEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
       y += 5
+      doc.setFont('helvetica', 'bold')
       doc.setFontSize(11)
       doc.text('CAMBIO A DEVOLVER:', izquierda, y)
+      doc.setFont('helvetica', 'normal')
       doc.text(`$${cambioEfectivo.toLocaleString('es-CO')}`, derecha, y, {
         align: 'right',
       })
@@ -386,12 +434,12 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
     y += 2.5
     y = dibujarLinea(y, true)
     y += 4.8
-    y = escribirTextoConSalto(
-      `NOTA ORDEN: ${datos.observacionesGenerales.trim().toUpperCase()}`,
+    y = escribirSubtituloYValor(
+      'NOTA ORDEN:',
+      datos.observacionesGenerales.trim().toUpperCase(),
       izquierda,
       y,
-      12,
-      true
+      12
     )
     y += 1.5
     y = dibujarLinea(y, true)

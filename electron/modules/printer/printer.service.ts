@@ -94,7 +94,7 @@ export function generarHtmlComanda(datos: any): string {
 
       const carneHtml = carneElegida
         ? `<div class="obs-section">
-            <div><span class="obs-title">[•] CARNE:</span> <span class="font-normal">${escapeHtml(carneElegida.toUpperCase())}</span></div>
+            <div>[•] CARNE: ${escapeHtml(carneElegida.toUpperCase())}</div>
           </div>`
         : ''
 
@@ -139,7 +139,7 @@ export function generarHtmlComanda(datos: any): string {
       return `
         <div class="item-block">
           <div class="row">
-            <span class="col-cant-nombre font-bold">${item.cantidad}x ${escapeHtml(item.nombre)}</span>
+            <span class="col-cant-nombre">${item.cantidad}x ${escapeHtml(item.nombre)}</span>
             <span class="col-subtotal">$${Number(item.subtotal || 0).toLocaleString('es-CO')}</span>
           </div>
           ${carneHtml}
@@ -317,7 +317,7 @@ export function generarHtmlComanda(datos: any): string {
     .divider { border-bottom: 2px dashed #000; margin: 6px 0; }
     .divider-double { border-bottom: 3px solid #000; margin: 6px 0; }
     .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-    .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; font-size: 20.5px; font-weight: 800; }
+    .col-cant-nombre { flex: 1; word-break: break-word; padding-right: 4px; font-size: 20.5px; font-weight: normal; }
     .col-subtotal { white-space: nowrap; font-size: 19px; font-weight: normal; }
     .cliente-box { margin: 5px 0; }
     .cliente-nombre { font-size: 14.5px; font-weight: normal; margin-bottom: 3px; }
@@ -326,7 +326,7 @@ export function generarHtmlComanda(datos: any): string {
     .domicilio-ref { font-size: 13.5px; font-weight: normal; margin-top: 2px; }
     .item-block { margin-bottom: 12px; }
     .obs-section { padding-left: 6px; margin-top: 5px; font-size: 18.5px; font-weight: normal; }
-    .obs-title { font-weight: 800; text-decoration: underline; margin-bottom: 2px; }
+    .obs-title { font-weight: normal; text-decoration: underline; margin-bottom: 2px; }
     .obs-line { padding-left: 6px; margin-top: 2px; font-weight: normal; }
     .total-row { font-size: 16px; font-weight: 800; margin-top: 4px; margin-bottom: 4px; }
     .footer-money { font-size: 13.5px; margin-bottom: 3px; font-weight: normal; }

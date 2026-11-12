@@ -163,10 +163,9 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   y += 2
   y = dibujarLinea(y)
 
-  // --- 5. ÍTEMS DE LA COMANDA Y ALERTAS DE COCINA ---
+  // --- 5. ÍTEMS DE LA COMANDA Y ALERTAS DE COCINA (SIN NEGRILLA) ---
   y += 6.5
   datos.items.forEach((item) => {
-    // Título del producto en negrilla, precio en normal
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(15.5)
     const textoPrecio = `$${Number(item.subtotal || 0).toLocaleString('es-CO')}`
@@ -177,7 +176,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
       izquierda,
       y,
       16.5,
-      true,
+      false,
       51
     )
 
@@ -220,31 +219,31 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
 
       if (carneElegida) {
         y += 2
-        y = escribirSubtituloYValor(
-          '  • CARNE:',
-          carneElegida.toUpperCase(),
+        y = escribirTextoConSalto(
+          `  • CARNE: ${carneElegida.toUpperCase()}`,
           izquierda,
           y,
           15,
+          false,
           74
         )
       }
 
       if (listaSalsas.length > 0) {
         y += 2
-        y = escribirSubtituloYValor(
-          '  • SALSAS:',
-          listaSalsas.join(', ').toUpperCase(),
+        y = escribirTextoConSalto(
+          `  • SALSAS: ${listaSalsas.join(', ').toUpperCase()}`,
           izquierda,
           y,
           15,
+          false,
           74
         )
       }
 
       if (listaSin.length > 0) {
         y += 2.2
-        doc.setFont('helvetica', 'bold')
+        doc.setFont('helvetica', 'normal')
         doc.setFontSize(15)
         doc.text('  [!] SIN (QUITAR):', izquierda, y)
         y += 7.2
@@ -256,7 +255,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
 
       if (listaAdiciones.length > 0) {
         y += 2.2
-        doc.setFont('helvetica', 'bold')
+        doc.setFont('helvetica', 'normal')
         doc.setFontSize(15)
         doc.text('  [+] ADICIONES:', izquierda, y)
         y += 7.2
@@ -268,7 +267,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
 
       if (listaNotas.length > 0) {
         y += 2.2
-        doc.setFont('helvetica', 'bold')
+        doc.setFont('helvetica', 'normal')
         doc.setFontSize(15)
         doc.text('  [*] NOTA PLATO:', izquierda, y)
         y += 7.2

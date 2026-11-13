@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
+  DatosLiquidacionDomicilios,
   FiltroEstadoVenta,
   MetricasVentas,
   ModoFiltroFecha,
@@ -99,6 +100,8 @@ export const useVentasHistorial = () => {
   const [otroMotivo, setOtroMotivo] = useState('')
   const [ventaADesanular, setVentaADesanular] = useState<VentaResumen | null>(null)
   const [ticketModalData, setTicketModalData] = useState<DatosComandaCocina | null>(null)
+  const [datosLiquidacionModal, setDatosLiquidacionModal] =
+    useState<DatosLiquidacionDomicilios | null>(null)
 
   useEffect(() => {
     const cargarMetodosYBancos = async () => {
@@ -352,6 +355,40 @@ export const useVentasHistorial = () => {
     }
   }
 
+  const handleAbrirLiquidacionDomicilios = useCallback(() => {
+    const inicio = modoFecha === 'UNICA' ? fechaUnica : fechaInicio
+    const fin = modoFecha === 'UNICA' ? fechaUnica : fechaFin
+    const fechaTexto = inicio === fin ? inicio : `${inicio} al ${fin}`
+    const horaActual = new Date().toLocaleTimeString('es-CO', {
+      timeZone: 'America/Bogota',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    })
+
+    setDatosLiquidacionModal({
+      fecha: fechaTexto,
+      hora: horaActual,
+      cantidadDomicilios: metricas.domicilios || 0,
+      totalPagar: Number(metricas.totalDomiciliosMonto || 0),
+      efectivoContraentrega: Number(metricas.totalDomiciliosEfectivo || 0),
+      transferencia: Number(metricas.totalDomiciliosTransferencia || 0),
+    })
+  }, [
+    modoFecha,
+    fechaUnica,
+    fechaInicio,
+    fechaFin,
+    metricas.domicilios,
+    metricas.totalDomiciliosMonto,
+    metricas.totalDomiciliosEfectivo,
+    metricas.totalDomiciliosTransferencia,
+  ])
+
+  const handleCerrarLiquidacionModal = useCallback(() => {
+    setDatosLiquidacionModal(null)
+  }, [])
+
   const nombreBancoFiltro =
     bancoFiltro !== 'TODOS'
       ? metricas.desgloseBancos?.find((b) => b.bancoId === bancoFiltro)?.nombre ||
@@ -403,6 +440,9 @@ export const useVentasHistorial = () => {
     ventaADesanular,
     setVentaADesanular,
     ticketModalData,
+    datosLiquidacionModal,
+    handleAbrirLiquidacionDomicilios,
+    handleCerrarLiquidacionModal,
     ventaExpandidaId,
     toggleExpandir,
     handleIrAHoy,

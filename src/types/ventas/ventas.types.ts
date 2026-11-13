@@ -84,7 +84,16 @@ export interface ProductoMasVendido {
   productoId: number | null
   nombre: string
   categoriaNombre: string
+  esBebida?: boolean
   cantidadVendida: number
+  totalGenerado: number
+  gananciaEstimada: number
+}
+
+export interface ResumenCategoriaVenta {
+  categoriaNombre: string
+  esBebida: boolean
+  unidadesVendidas: number
   totalGenerado: number
   gananciaEstimada: number
 }
@@ -96,6 +105,15 @@ export interface DesgloseBancoItem {
   cantidadPedidos: number
 }
 
+export interface DatosLiquidacionDomicilios {
+  fecha: string
+  hora?: string
+  cantidadDomicilios: number
+  totalPagar: number
+  efectivoContraentrega: number
+  transferencia: number
+}
+
 export interface MetricasVentas {
   totalMonto: number
   totalEfectivo: number
@@ -105,8 +123,15 @@ export interface MetricasVentas {
   llevar: number
   domicilios: number
   totalDomiciliosMonto?: number
+  totalDomiciliosEfectivo?: number
+  totalDomiciliosTransferencia?: number
   totalUnidadesVendidas?: number
+  totalUnidadesPlatos?: number
+  totalMontoPlatos?: number
+  totalUnidadesBebidas?: number
+  totalMontoBebidas?: number
   rankingProductos?: ProductoMasVendido[]
+  resumenCategorias?: ResumenCategoriaVenta[]
   desgloseBancos?: DesgloseBancoItem[]
 }
 
@@ -140,6 +165,7 @@ export interface VentasMetricsProps {
   handleAbrirDetalleGastos: () => void
   handleAbrirRankingProductos: () => void
   handleAbrirDesgloseBancos: () => void
+  handleAbrirLiquidacionDomicilios?: () => void
 }
 
 export interface RankingProductosModalProps {

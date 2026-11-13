@@ -10,6 +10,7 @@ import { VentasPagination } from './VentasPagination'
 import { RankingProductosModal } from './RankingProductosModal'
 import { DesgloseBancosModal } from './DesgloseBancosModal'
 import { CambiarMetodoPagoModal } from './CambiarMetodoPagoModal'
+import { LiquidacionDomiciliosModal } from './LiquidacionDomiciliosModal'
 
 export const VentasHistorialView: React.FC = () => {
   const hook = useVentasHistorial()
@@ -50,6 +51,7 @@ export const VentasHistorialView: React.FC = () => {
         handleAbrirDetalleGastos={hook.handleAbrirDetalleGastos}
         handleAbrirRankingProductos={() => hook.setModalRankingAbierto(true)}
         handleAbrirDesgloseBancos={() => hook.setModalBancosAbierto(true)}
+        handleAbrirLiquidacionDomicilios={hook.handleAbrirLiquidacionDomicilios}
       />
 
       <VentasFilters
@@ -149,6 +151,13 @@ export const VentasHistorialView: React.FC = () => {
         <TicketPreviewModal
           datosTicket={hook.ticketModalData}
           onClose={hook.handleCerrarTicketModal}
+        />
+      )}
+
+      {hook.datosLiquidacionModal && (
+        <LiquidacionDomiciliosModal
+          datos={hook.datosLiquidacionModal}
+          onClose={hook.handleCerrarLiquidacionModal}
         />
       )}
     </div>

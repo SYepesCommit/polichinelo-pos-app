@@ -18,6 +18,37 @@ function escaparCsv(valor: any): string {
   return `"${str}"`
 }
 
+function esItemBebida(categoriaNombre?: string, nombreProducto?: string): boolean {
+  const texto = `${categoriaNombre || ''} ${nombreProducto || ''}`
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  return (
+    texto.includes('bebida') ||
+    texto.includes('gaseosa') ||
+    texto.includes('jugo') ||
+    texto.includes('refresco') ||
+    texto.includes('cerveza') ||
+    texto.includes('agua') ||
+    texto.includes('coca') ||
+    texto.includes('pepsi') ||
+    texto.includes('postobon') ||
+    texto.includes('colombiana') ||
+    texto.includes('manzana') ||
+    texto.includes('pony') ||
+    texto.includes('hit') ||
+    texto.includes('soda') ||
+    texto.includes('bretana') ||
+    texto.includes('quatro') ||
+    texto.includes('sprite') ||
+    texto.includes('7up') ||
+    texto.includes('ginger') ||
+    texto.includes('mr tea') ||
+    texto.includes('hatsu')
+  )
+}
+
 export const ventaService = {
   // 1. Consulta por FECHA ÚNICA
   async getVentasPorFecha(fechaStr: string) {
@@ -234,13 +265,15 @@ export const ventaService = {
       lineas.push('"1. RESUMEN DE ARQUEO Y CAJA"')
       lineas.push('"Concepto";"Valor (COP)"')
       lineas.push(`"Total Facturado (Ventas Activas)";${m.totalMonto}`)
+      lineas.push(`"Ventas de Platos / Comida (${m.totalUnidadesPlatos || 0} unds)";${m.totalMontoPlatos || 0}`)
+      lineas.push(`"Ventas de Bebidas / Gaseosas (${m.totalUnidadesBebidas || 0} unds)";${m.totalMontoBebidas || 0}`)
+      lineas.push(`"Total Recargos de Domicilios (${m.domicilios} envios)";${m.totalDomiciliosMonto}`)
       lineas.push(`"Ingresos en Efectivo";${m.totalEfectivo}`)
       lineas.push(`"Ingresos en Bancos / Transferencias";${m.totalBancos}`)
       lineas.push(`"Salidas en Efectivo (Caja)";${totalGastosEfectivo}`)
       lineas.push(`"Salidas por Transferencia / Banco";${totalGastosTransferencia}`)
       lineas.push(`"Total Salidas / Gastos";${totalGastos}`)
       lineas.push(`"Efectivo Neto Esperado en Caja";${m.totalEfectivo - totalGastosEfectivo}`)
-      lineas.push(`"Total Recargos de Domicilios (${m.domicilios} envios)";${m.totalDomiciliosMonto}`)
       lineas.push('')
 
       // SECCIÓN 2: DESGLOSE POR BANCO
@@ -255,18 +288,36 @@ export const ventaService = {
       }
       lineas.push('')
 
-      // SECCIÓN 3: RANKING DE PRODUCTOS MÁS VENDIDOS
-      lineas.push('"3. RANKING DE PRODUCTOS VENDIDOS"')
-      lineas.push('"Posicion";"Producto";"Categoria";"Unidades Vendidas";"Total Generado (COP)";"Utilidad Estimada (COP)"')
+      // SECCIÓN 3: RESUMEN POR CATEGORÍA (COMIDA Y BEBIDAS)
+      lineas.push('"3. RESUMEN DE VENTAS POR CATEGORIA"')
+      lineas.push('"Categoria";"Tipo";"Unidades Vendidas";"Total Generado (COP)";"Utilidad Estimada (COP)"')
+      if (!m.resumenCategorias || m.resumenCategorias.length === 0) {
+        lineas.push('"Sin categorias vendidas en este periodo";"";0;0;0')
+      } else {
+        m.resumenCategorias.forEach((cat) => {
+          lineas.push(
+            `${escaparCsv(cat.categoriaNombre)};${escaparCsv(
+              cat.esBebida ? 'Bebida / Gaseosa' : 'Comida / Plato'
+            )};${cat.unidadesVendidas};${cat.totalGenerado};${cat.gananciaEstimada}`
+          )
+        })
+      }
+      lineas.push('')
+
+      // SECCIÓN 4: RANKING DE PRODUCTOS MÁS VENDIDOS
+      lineas.push('"4. RANKING DE PRODUCTOS Y BEBIDAS VENDIDAS"')
+      lineas.push('"Posicion";"Producto";"Categoria";"Tipo";"Unidades Vendidas";"Total Generado (COP)";"Utilidad Estimada (COP)"')
       m.rankingProductos.forEach((p, idx) => {
         lineas.push(
-          `${idx + 1};${escaparCsv(p.nombre)};${escaparCsv(p.categoriaNombre)};${p.cantidadVendida};${p.totalGenerado};${p.gananciaEstimada}`
+          `${idx + 1};${escaparCsv(p.nombre)};${escaparCsv(p.categoriaNombre)};${escaparCsv(
+            p.esBebida ? 'Bebida' : 'Plato'
+          )};${p.cantidadVendida};${p.totalGenerado};${p.gananciaEstimada}`
         )
       })
       lineas.push('')
 
-      // SECCIÓN 4: SALIDAS / GASTOS DE CAJA
-      lineas.push('"4. SALIDAS Y GASTOS DE CAJA"')
+      // SECCIÓN 5: SALIDAS / GASTOS DE CAJA
+      lineas.push('"5. SALIDAS Y GASTOS DE CAJA"')
       lineas.push('"ID";"Fecha";"Hora";"Origen";"Concepto / Motivo";"Monto (COP)"')
       gastos.forEach((g) => {
         const fechaObjGasto = new Date(g.fechaRegistro)
@@ -289,8 +340,8 @@ export const ventaService = {
       })
       lineas.push('')
 
-      // SECCIÓN 5: LISTADO DETALLADO DE PEDIDOS
-      lineas.push('"5. LISTADO DETALLADO DE VENTAS"')
+      // SECCIÓN 6: LISTADO DETALLADO DE PEDIDOS
+      lineas.push('"6. LISTADO DETALLADO DE VENTAS"')
       lineas.push(
         '"Consecutivo";"Fecha";"Hora";"Estado";"Tipo Pedido";"Cliente";"Telefono";"Direccion";"Metodo Pago";"Banco";"Valor Domicilio";"Total Pedido";"Detalle Productos";"Observaciones / Motivo Anulacion"'
       )
@@ -565,6 +616,7 @@ export const ventaService = {
       bancosCatalogo,
       productosAgrupados,
       productosCatalogo,
+      pagosDomiciliosAgrupados,
     ] = await Promise.all([
       prisma.pedido.findMany({
         where,
@@ -637,6 +689,17 @@ export const ventaService = {
           },
         },
       }),
+
+      prisma.pagoDetalle.groupBy({
+        by: ['metodoPago'],
+        where: {
+          pedido: {
+            ...wherePeriodoActivos,
+            tipoPedido: 'DOMICILIO',
+          },
+        },
+        _sum: { monto: true },
+      }),
     ])
 
     const resumenTipos = { MESA: 0, LLEVAR: 0, DOMICILIO: 0 }
@@ -701,6 +764,22 @@ export const ventaService = {
     )
 
     let totalUnidadesVendidas = 0
+    let totalUnidadesPlatos = 0
+    let totalMontoPlatos = 0
+    let totalUnidadesBebidas = 0
+    let totalMontoBebidas = 0
+
+    const mapaResumenCategorias = new Map<
+      string,
+      {
+        categoriaNombre: string
+        esBebida: boolean
+        unidadesVendidas: number
+        totalGenerado: number
+        gananciaEstimada: number
+      }
+    >()
+
     const rankingProductos = productosAgrupados
       .map((grupo) => {
         const cant = Number(grupo._sum.cantidad || 0)
@@ -712,17 +791,58 @@ export const ventaService = {
         const catNombre = info?.categoriaNombre || 'Varios'
         const costoUnitario = info?.costoBase || 0
         const gananciaEstimada = costoUnitario > 0 ? subtotalGrupo - costoUnitario * cant : 0
+        const esBebida = esItemBebida(catNombre, nombreProd)
+
+        if (esBebida) {
+          totalUnidadesBebidas += cant
+          totalMontoBebidas += subtotalGrupo
+        } else {
+          totalUnidadesPlatos += cant
+          totalMontoPlatos += subtotalGrupo
+        }
+
+        const catActual = mapaResumenCategorias.get(catNombre)
+        if (catActual) {
+          catActual.unidadesVendidas += cant
+          catActual.totalGenerado += subtotalGrupo
+          catActual.gananciaEstimada += gananciaEstimada
+          if (esBebida) catActual.esBebida = true
+        } else {
+          mapaResumenCategorias.set(catNombre, {
+            categoriaNombre: catNombre,
+            esBebida,
+            unidadesVendidas: cant,
+            totalGenerado: subtotalGrupo,
+            gananciaEstimada,
+          })
+        }
 
         return {
           productoId: grupo.productoId ?? null,
           nombre: nombreProd,
           categoriaNombre: catNombre,
+          esBebida,
           cantidadVendida: cant,
           totalGenerado: subtotalGrupo,
           gananciaEstimada,
         }
       })
       .sort((a, b) => b.cantidadVendida - a.cantidadVendida || b.totalGenerado - a.totalGenerado)
+
+    const resumenCategorias = Array.from(mapaResumenCategorias.values()).sort(
+      (a, b) => b.unidadesVendidas - a.unidadesVendidas || b.totalGenerado - a.totalGenerado
+    )
+
+    let totalDomiciliosEfectivo = 0
+    let totalDomiciliosTransferencia = 0
+    pagosDomiciliosAgrupados.forEach((pg) => {
+      const monto = Number(pg._sum.monto || 0)
+      if (pg.metodoPago.toUpperCase().includes('EFECTIVO')) {
+        totalDomiciliosEfectivo += monto
+      } else {
+        totalDomiciliosTransferencia += monto
+      }
+    })
 
     return {
       datos: this.mapearRespuestaVentas(pedidos),
@@ -741,8 +861,15 @@ export const ventaService = {
         llevar: resumenTipos.LLEVAR,
         domicilios: resumenTipos.DOMICILIO,
         totalDomiciliosMonto: Number(agregadoDomicilios._sum.montoDomicilio || 0),
+        totalDomiciliosEfectivo,
+        totalDomiciliosTransferencia,
         totalUnidadesVendidas,
+        totalUnidadesPlatos,
+        totalMontoPlatos,
+        totalUnidadesBebidas,
+        totalMontoBebidas,
         rankingProductos,
+        resumenCategorias,
         desgloseBancos,
       },
     }

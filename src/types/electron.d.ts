@@ -59,6 +59,7 @@ export interface IElectronAPI {
   // Pedidos y Comandas
   crearPedido: (payload: CrearPedidoInput) => Promise<{ id: string; ok: boolean }>
   imprimirComanda?: (datosComanda: any) => Promise<any>
+  imprimirLiquidacionDomicilios?: (datos: any) => Promise<{ success: boolean; error?: string }>
 
   // Métodos de Pago y Bancos
   getMetodosPago: () => Promise<MetodoPago[]>

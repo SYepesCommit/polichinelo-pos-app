@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import { DatosComandaCocina } from '../types/pos/posView.types'
+import { DatosLiquidacionDomicilios } from '../types/ventas/ventas.types'
 
 function formatearTelefono(tel?: string): string {
   if (!tel) return ''
@@ -464,6 +465,148 @@ export const generarTicketPDF = (datos: DatosComandaCocina): jsPDF => {
     format: [80, altoExacto],
   })
   renderizarContenidoTicket(docFinal, datos)
+
+  return docFinal
+}
+
+function renderizarLiquidacionDomicilios(doc: jsPDF, datos: DatosLiquidacionDomicilios): number {
+  let y = 11
+  const centro = 40
+  const izquierda = 3
+  const derecha = 77
+
+  const dibujarLinea = (posY: number, doble = false): number => {
+    const lineaY = posY + 2
+    doc.setDrawColor(0, 0, 0)
+    doc.setLineWidth(doble ? 0.7 : 0.4)
+    doc.line(izquierda, lineaY, derecha, lineaY)
+    if (doble) {
+      doc.line(izquierda, lineaY + 1.4, derecha, lineaY + 1.4)
+      return lineaY + 4.5
+    }
+    return lineaY + 3.5
+  }
+
+  // --- 1. ENCABEZADO ---
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(15)
+  doc.text('POLICHINELO POS', centro, y, { align: 'center' })
+
+  y += 5.5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11)
+  doc.text('LIQUIDACIÓN DE DOMICILIOS', centro, y, { align: 'center' })
+
+  y += 2
+  y = dibujarLinea(y, true)
+
+  // --- 2. FECHA Y HORA ---
+  y += 4.5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10.5)
+  doc.text('FECHA:', izquierda, y)
+  doc.setFont('helvetica', 'normal')
+  doc.text(datos.fecha, derecha, y, { align: 'right' })
+
+  if (datos.hora) {
+    y += 5
+    doc.setFont('helvetica', 'bold')
+    doc.text('HORA:', izquierda, y)
+    doc.setFont('helvetica', 'normal')
+    doc.text(datos.hora, derecha, y, { align: 'right' })
+  }
+
+  y += 2
+  y = dibujarLinea(y)
+
+  // --- 3. DOMICILIOS REALIZADOS ---
+  y += 5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(11.5)
+  doc.text('DOMICILIOS REALIZADOS:', izquierda, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(12)
+  doc.text(`${datos.cantidadDomicilios} envíos`, derecha, y, { align: 'right' })
+
+  y += 2
+  y = dibujarLinea(y, true)
+
+  // --- 4. TOTAL A PAGAR (DESTACADO) ---
+  y += 5.5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.text('TOTAL A PAGAR:', izquierda, y)
+  doc.setFontSize(16)
+  doc.text(`$${Number(datos.totalPagar || 0).toLocaleString('es-CO')}`, derecha, y, {
+    align: 'right',
+  })
+
+  y += 2.5
+  y = dibujarLinea(y, true)
+
+  // --- 5. RECAUDOS ---
+  y += 5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.text('Efectivo recibido contraentrega:', izquierda, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10.5)
+  doc.text(`$${Number(datos.efectivoContraentrega || 0).toLocaleString('es-CO')}`, derecha, y, {
+    align: 'right',
+  })
+
+  y += 5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.text('Pagado por transferencia:', izquierda, y)
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10.5)
+  doc.text(`$${Number(datos.transferencia || 0).toLocaleString('es-CO')}`, derecha, y, {
+    align: 'right',
+  })
+
+  y += 2
+  y = dibujarLinea(y, true)
+
+  // --- 6. FIRMAS DE CONFORMIDAD ---
+  y += 18
+  doc.setDrawColor(0, 0, 0)
+  doc.setLineWidth(0.4)
+  doc.line(izquierda, y, izquierda + 55, y)
+  y += 4
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.text('Firma Domiciliario:', izquierda, y)
+
+  y += 14
+  doc.line(izquierda, y, izquierda + 55, y)
+  y += 4
+  doc.text('Recibido conforme: $ _______________', izquierda, y)
+
+  y += 4
+  y = dibujarLinea(y)
+
+  // --- 7. PIE ---
+  y += 5
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.text('*** COMPROBANTE DE LIQUIDACION ***', centro, y, { align: 'center' })
+
+  return y + 10
+}
+
+export const generarLiquidacionDomiciliosPDF = (datos: DatosLiquidacionDomicilios): jsPDF => {
+  const docMedicion = new jsPDF({
+    unit: 'mm',
+    format: [80, 400],
+  })
+  const altoExacto = Math.max(renderizarLiquidacionDomicilios(docMedicion, datos), 110)
+
+  const docFinal = new jsPDF({
+    unit: 'mm',
+    format: [80, altoExacto],
+  })
+  renderizarLiquidacionDomicilios(docFinal, datos)
 
   return docFinal
 }

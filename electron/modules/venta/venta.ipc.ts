@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { ventaService } from './venta.service'
+import { imprimirLiquidacionDomiciliosTermica } from '../printer/printer.service'
 
 export function registerVentaIpc() {
   ipcMain.removeHandler('getVentasPorFecha')
@@ -43,5 +44,10 @@ export function registerVentaIpc() {
   ipcMain.removeHandler('exportar-reporte-csv')
   ipcMain.handle('exportar-reporte-csv', async (_, filtros) => {
     return await ventaService.exportarReporteCsv(filtros)
+  })
+
+  ipcMain.removeHandler('imprimir-liquidacion-domicilios')
+  ipcMain.handle('imprimir-liquidacion-domicilios', async (_, datos) => {
+    return await imprimirLiquidacionDomiciliosTermica(datos)
   })
 }

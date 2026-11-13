@@ -377,14 +377,126 @@ export function generarHtmlComanda(datos: any): string {
 </html>`
 }
 
-export async function imprimirComandaTermica(
-  datos: any,
+export function generarHtmlLiquidacionDomicilios(datos: any): string {
+  const fechaTexto = datos.fecha || ''
+  const horaTexto = datos.hora || ''
+  const cantidad = Number(datos.cantidadDomicilios || 0)
+  const totalPagar = Number(datos.totalPagar || 0)
+  const efvoContraentrega = Number(datos.efectivoContraentrega || 0)
+  const transferencia = Number(datos.transferencia || 0)
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    @page {
+      margin: 0;
+      size: 80mm auto;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      width: 72mm;
+      margin: 0;
+      padding: 2mm 1.5mm 0 1.5mm;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      font-weight: normal;
+      line-height: 1.35;
+      color: #000;
+      background: #fff;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .font-bold { font-weight: 800; }
+    .font-normal { font-weight: normal; }
+    .title { font-size: 18px; font-weight: 900; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .subtitle { font-size: 14px; font-weight: 800; margin-top: 3px; margin-bottom: 3px; }
+    .divider { border-bottom: 2px dashed #000; margin: 6px 0; }
+    .divider-double { border-bottom: 3px solid #000; margin: 6px 0; }
+    .row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+    .total-box {
+      margin: 8px 0;
+      padding: 6px 0;
+      border-top: 2px solid #000;
+      border-bottom: 2px solid #000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-comanda { font-size: 12px; font-weight: 800; text-align: center; margin-top: 15px; }
+    .feed-bottom { height: 16mm; }
+  </style>
+</head>
+<body>
+  <div class="text-center title">POLICHINELO POS</div>
+  <div class="text-center subtitle">*** LIQUIDACIÓN DE DOMICILIOS ***</div>
+  <div class="divider"></div>
+
+  <div class="row" style="font-size: 13.5px;">
+    <span class="font-bold">FECHA:</span>
+    <span>${escapeHtml(fechaTexto)}</span>
+  </div>
+  ${
+    horaTexto
+      ? `<div class="row" style="font-size: 13.5px;">
+    <span class="font-bold">HORA:</span>
+    <span>${escapeHtml(horaTexto)}</span>
+  </div>`
+      : ''
+  }
+
+  <div class="divider"></div>
+
+  <div class="row" style="margin-top: 5px; margin-bottom: 6px;">
+    <span class="font-bold" style="font-size: 14.5px;">DOMICILIOS REALIZADOS:</span>
+    <span style="font-size: 15.5px;">${cantidad} envíos</span>
+  </div>
+
+  <div class="total-box">
+    <span class="font-bold" style="font-size: 16px;">TOTAL A PAGAR:</span>
+    <span class="font-bold" style="font-size: 20px;">$${totalPagar.toLocaleString('es-CO')}</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="row" style="font-size: 13.5px; margin-top: 6px; margin-bottom: 4px;">
+    <span class="font-bold">Efectivo recibido contraentrega:</span>
+    <span style="font-size: 14px;">$${efvoContraentrega.toLocaleString('es-CO')}</span>
+  </div>
+  <div class="row" style="font-size: 13.5px; margin-bottom: 6px;">
+    <span class="font-bold">Pagado por transferencia:</span>
+    <span style="font-size: 14px;">$${transferencia.toLocaleString('es-CO')}</span>
+  </div>
+
+  <div class="divider-double"></div>
+
+  <div style="margin-top: 30px; font-size: 13px;">
+    <div style="border-bottom: 1px solid #000; width: 90%; margin-bottom: 4px;"></div>
+    <span class="font-bold">Firma Domiciliario:</span>
+  </div>
+
+  <div style="margin-top: 22px; font-size: 13px;">
+    <div style="border-bottom: 1px solid #000; width: 90%; margin-bottom: 4px;"></div>
+    <span class="font-bold">Recibido conforme: $ _______________</span>
+  </div>
+
+  <div class="footer-comanda">*** COMPROBANTE DE LIQUIDACION ***</div>
+  <div class="feed-bottom"></div>
+</body>
+</html>`
+}
+
+async function imprimirHtmlDirecto(
+  html: string,
   nombreImpresora?: string
 ): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
     try {
-      const html = generarHtmlComanda(datos)
-
       const win = new BrowserWindow({
         show: false,
         width: 302, // ~80mm
@@ -414,7 +526,7 @@ export async function imprimirComandaTermica(
               }
             }
 
-            console.log('🖨️ Imprimiendo silenciosamente comanda en:', printerName || 'Predeterminada')
+            console.log('🖨️ Imprimiendo silenciosamente en térmica:', printerName || 'Predeterminada')
 
             const printOptions: any = {
               silent: true,
@@ -463,4 +575,20 @@ export async function imprimirComandaTermica(
       resolve({ success: false, error: err.message })
     }
   })
+}
+
+export async function imprimirComandaTermica(
+  datos: any,
+  nombreImpresora?: string
+): Promise<{ success: boolean; error?: string }> {
+  const html = generarHtmlComanda(datos)
+  return await imprimirHtmlDirecto(html, nombreImpresora)
+}
+
+export async function imprimirLiquidacionDomiciliosTermica(
+  datos: any,
+  nombreImpresora?: string
+): Promise<{ success: boolean; error?: string }> {
+  const html = generarHtmlLiquidacionDomicilios(datos)
+  return await imprimirHtmlDirecto(html, nombreImpresora)
 }

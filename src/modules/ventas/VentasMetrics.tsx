@@ -10,6 +10,8 @@ import {
   Eye,
   Trophy,
   Wallet,
+  CupSoda,
+  Printer,
 } from 'lucide-react'
 import { VentasMetricsProps } from '@/types/ventas/ventas.types'
 
@@ -23,12 +25,32 @@ export const VentasMetrics: React.FC<VentasMetricsProps> = ({
   handleAbrirDetalleGastos,
   handleAbrirRankingProductos,
   handleAbrirDesgloseBancos,
+  handleAbrirLiquidacionDomicilios,
 }) => {
-  const top1 =
-    metricas.rankingProductos && metricas.rankingProductos.length > 0
+  const rankingPlatos = (metricas.rankingProductos || []).filter((p) => !p.esBebida)
+  const rankingBebidas = (metricas.rankingProductos || []).filter((p) => p.esBebida)
+
+  const top1Plato =
+    rankingPlatos.length > 0
+      ? rankingPlatos[0]
+      : metricas.rankingProductos && metricas.rankingProductos.length > 0
       ? metricas.rankingProductos[0]
       : null
+  const top1Bebida = rankingBebidas.length > 0 ? rankingBebidas[0] : null
+
   const totalUnidades = metricas.totalUnidadesVendidas || 0
+  const totalPlatosUnds =
+    metricas.totalUnidadesPlatos !== undefined
+      ? metricas.totalUnidadesPlatos
+      : rankingPlatos.reduce((acc, p) => acc + p.cantidadVendida, 0)
+  const totalBebidasUnds =
+    metricas.totalUnidadesBebidas !== undefined
+      ? metricas.totalUnidadesBebidas
+      : rankingBebidas.reduce((acc, p) => acc + p.cantidadVendida, 0)
+  const totalBebidasMonto =
+    metricas.totalMontoBebidas !== undefined
+      ? metricas.totalMontoBebidas
+      : rankingBebidas.reduce((acc, p) => acc + p.totalGenerado, 0)
   const totalDomiciliosMonto = metricas.totalDomiciliosMonto || 0
 
   return (
@@ -140,50 +162,87 @@ export const VentasMetrics: React.FC<VentasMetricsProps> = ({
         </div>
 
         {/* TARJETA DE DOMICILIOS CON TOTAL DE ENVÍOS PARA LIQUIDAR DOMICILIARIOS */}
-        <div className="bg-slate-900 border border-emerald-500/20 rounded-2xl p-3 flex flex-col justify-between min-w-[215px]">
+        <div
+          onClick={handleAbrirLiquidacionDomicilios}
+          className="bg-slate-900 border border-emerald-500/20 hover:border-emerald-500/60 rounded-2xl p-3 flex flex-col justify-between min-w-[215px] cursor-pointer transition group shadow-sm active:scale-[0.98]"
+          title="Toca para generar e imprimir el ticket de liquidación para el domiciliario"
+        >
           <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-2">
-            <span>Domicilios</span>
-            <span className="text-[10px] font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-1.5 py-0.5 rounded-md">
-              ${formatMoneda(totalDomiciliosMonto)} en envíos
+            <span className="flex items-center gap-1.5">
+              <Bike className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Domicilios</span>
+            </span>
+            <span className="text-[9px] font-bold text-emerald-300/80 group-hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg">
+              <Printer className="w-3 h-3 text-emerald-400" />
+              <span>Ticket Repartidor</span>
             </span>
           </span>
-          <span className="text-xl font-black text-emerald-400 mt-1 flex items-center gap-1.5">
-            <Bike className="w-4 h-4 text-emerald-400" />
-            <span>{metricas.domicilios || 0}</span>
-            <span className="text-xs font-bold text-slate-400">despachados</span>
-          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-xl font-black text-emerald-400 flex items-center gap-1.5">
+              <span>{metricas.domicilios || 0}</span>
+              <span className="text-xs font-bold text-slate-400">despachados</span>
+            </span>
+            <span className="text-xs font-black text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 rounded-md">
+              ${formatMoneda(totalDomiciliosMonto)} en envíos
+            </span>
+          </div>
         </div>
 
-        {/* TARJETA INTERACTIVA DE PRODUCTOS MÁS VENDIDOS */}
+        {/* TARJETA INTERACTIVA DE PRODUCTOS Y BEBIDAS VENDIDAS */}
         <div
           onClick={handleAbrirRankingProductos}
           className="flex-1 min-w-[260px] bg-slate-900 border border-amber-500/30 hover:border-amber-500/70 bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 rounded-2xl p-3 flex flex-col justify-between cursor-pointer transition group shadow-sm active:scale-[0.99]"
-          title="Toca para abrir el ranking completo de productos vendidos"
+          title="Toca para abrir el ranking de productos y el cuadre de bebidas / categorías"
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <span className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
               <Trophy className="w-3.5 h-3.5 text-amber-400" />
-              <span>Productos Más Vendidos ({totalUnidades} unds)</span>
+              <span>
+                Productos Vendidos ({totalPlatosUnds} platos
+                {totalBebidasUnds > 0
+                  ? ` · ${totalBebidasUnds} beb.`
+                  : totalUnidades > 0 && totalPlatosUnds === 0
+                  ? `${totalUnidades} unds`
+                  : ''}
+                )
+              </span>
             </span>
-            <span className="text-[10px] font-bold text-amber-300/80 group-hover:text-amber-300 flex items-center gap-1">
-              <span>Ver Top</span>
-              <Eye className="w-3.5 h-3.5" />
-            </span>
+
+            <div className="flex items-center gap-2">
+              {totalBebidasUnds > 0 && (
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                  <CupSoda className="w-3 h-3 text-cyan-400" />
+                  <span>
+                    Bebidas: {totalBebidasUnds} (${formatMoneda(totalBebidasMonto)})
+                  </span>
+                </span>
+              )}
+              <span className="text-[10px] font-bold text-amber-300/80 group-hover:text-amber-300 flex items-center gap-1">
+                <span>Ver Top</span>
+                <Eye className="w-3.5 h-3.5" />
+              </span>
+            </div>
           </div>
 
-          {top1 ? (
+          {top1Plato ? (
             <div className="flex items-center justify-between gap-3 mt-1.5">
               <span className="text-xs font-black text-slate-100 truncate">
-                🥇 {top1.nombre}
+                🥇 {top1Plato.nombre}
+                {top1Bebida && top1Bebida.nombre !== top1Plato.nombre && (
+                  <span className="text-[10px] font-bold text-cyan-300 ml-2">
+                    · 🥤 {top1Bebida.nombre} ({top1Bebida.cantidadVendida})
+                  </span>
+                )}
               </span>
               <span className="text-xs font-black text-amber-400 shrink-0 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-lg">
-                {top1.cantidadVendida} {top1.cantidadVendida === 1 ? 'vendido' : 'vendidos'} · $
-                {formatMoneda(top1.totalGenerado)}
+                {top1Plato.cantidadVendida}{' '}
+                {top1Plato.cantidadVendida === 1 ? 'vendido' : 'vendidos'} · $
+                {formatMoneda(top1Plato.totalGenerado)}
               </span>
             </div>
           ) : (
             <span className="text-xs font-bold text-slate-500 mt-1">
-              Sin platos vendidos en este período
+              Sin platos ni bebidas vendidas en este período
             </span>
           )}
         </div>

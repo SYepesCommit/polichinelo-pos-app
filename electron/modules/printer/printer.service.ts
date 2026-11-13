@@ -109,7 +109,7 @@ export function generarHtmlComanda(datos: any): string {
       const sinHtml =
         listaSin.length > 0
           ? `<div class="obs-section">
-              <div class="obs-title">[!] SIN (QUITAR):</div>
+              <div class="obs-title">[!] SIN:</div>
               ${listaSin
                 .map((ing) => `<div class="obs-line">- ${escapeHtml(ing.toUpperCase())}</div>`)
                 .join('')}

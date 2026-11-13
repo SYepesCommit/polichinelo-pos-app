@@ -245,7 +245,7 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         y += 2.2
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(15)
-        doc.text('  [!] SIN (QUITAR):', izquierda, y)
+        doc.text('  [!] SIN:', izquierda, y)
         y += 7.2
 
         listaSin.forEach((ing) => {

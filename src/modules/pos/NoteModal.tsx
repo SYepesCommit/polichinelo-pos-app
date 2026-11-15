@@ -26,7 +26,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
     listaIngredientes,
     setNotasGenerales,
     toggleIngredienteSin,
-    toggleAdicionPaga,
+    cambiarCantidadAdicionPaga,
     handleGuardar,
   } = useNoteModal({
     productoAEditar,
@@ -190,7 +190,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
           </div>
         </div>
 
-        {/* 4. ADICIONES CON PRECIO */}
+        {/* 4. ADICIONES CON PRECIO Y CANTIDAD */}
         {adicionesDisponibles.length > 0 && (
           <div className="mb-5">
             <label className="text-[11px] font-extrabold text-amber-400 block mb-2 uppercase tracking-wider flex justify-between items-center">
@@ -201,32 +201,63 @@ export const NoteModal: React.FC<NoteModalProps> = ({
                 </span>
               )}
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {adicionesDisponibles.map((adicion) => {
-                const estaSeleccionada = adicionesPAGAS.some((a) => a.nombre === adicion.nombre)
+                const itemSeleccionado = adicionesPAGAS.find((a) => a.nombre === adicion.nombre)
+                const cantidadActual = itemSeleccionado?.cantidad || 0
+                const estaSeleccionada = cantidadActual > 0
+                const subtotalAdicion = adicion.precio * (cantidadActual || 1)
+
                 return (
-                  <button
+                  <div
                     key={adicion.nombre}
-                    type="button"
-                    onClick={() => toggleAdicionPaga(adicion)}
-                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between touch-manipulation active:scale-95 ${
+                    className={`p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between gap-2 ${
                       estaSeleccionada
                         ? 'bg-amber-500/20 border-amber-500 text-amber-300'
                         : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
                     }`}
                   >
-                    <div className="flex items-center gap-1.5 truncate">
-                      {estaSeleccionada ? (
-                        <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      ) : (
-                        <Plus className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      )}
-                      <span className="truncate">{adicion.nombre}</span>
-                    </div>
-                    <span className="text-[11px] text-emerald-400 font-extrabold shrink-0 ml-1">
-                      +${adicion.precio.toLocaleString('es-CO')}
-                    </span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => cambiarCantidadAdicionPaga(adicion, 1)}
+                      className="flex-1 flex items-center justify-between gap-1.5 text-left min-w-0 touch-manipulation active:scale-[0.98]"
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {estaSeleccionada ? (
+                          <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-slate-950 font-black text-[10px] shrink-0">
+                            {cantidadActual}x
+                          </span>
+                        ) : (
+                          <Plus className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        )}
+                        <span className="truncate">{adicion.nombre}</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400 font-extrabold shrink-0 ml-1">
+                        +${subtotalAdicion.toLocaleString('es-CO')}
+                      </span>
+                    </button>
+
+                    {estaSeleccionada && (
+                      <div className="flex items-center gap-1 shrink-0 pl-1.5 border-l border-amber-500/30">
+                        <button
+                          type="button"
+                          onClick={() => cambiarCantidadAdicionPaga(adicion, -1)}
+                          className="w-6 h-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center transition active:scale-90 touch-manipulation"
+                          title="Quitar 1"
+                        >
+                          <Minus className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => cambiarCantidadAdicionPaga(adicion, 1)}
+                          className="w-6 h-6 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black flex items-center justify-center transition active:scale-90 touch-manipulation"
+                          title="Agregar 1 más"
+                        >
+                          <Plus className="w-3 h-3 stroke-[3]" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>

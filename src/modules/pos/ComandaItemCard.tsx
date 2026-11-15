@@ -47,6 +47,14 @@ export const ComandaItemCard: React.FC<ComandaItemCardProps> = ({
               const gTrim = grupo.trim()
               const gUpper = gTrim.toUpperCase()
 
+              if (
+                gTrim === 'Ítem cobrado directamente' ||
+                gUpper.startsWith('[LIBRE:') ||
+                gUpper.startsWith('[CONCEPTO:')
+              ) {
+                return null
+              }
+
               const esCarne = gUpper.startsWith('CARNE:')
               const esSalsas = gUpper.startsWith('SALSAS:') || gUpper.startsWith('SALSA:')
               const esSin = gUpper.startsWith('SIN:') || gUpper.startsWith('SIN ')

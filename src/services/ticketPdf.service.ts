@@ -167,13 +167,22 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
   // --- 5. ÍTEMS DE LA COMANDA Y ALERTAS DE COCINA (SIN NEGRILLA) ---
   y += 6.5
   datos.items.forEach((item) => {
+    let nombreMostrar = (item.nombre || (item as any).producto?.nombre || 'Producto')
+      .replace(/^\[Varios\]\s*/i, '')
+      .trim()
+
+    const matchLibre = (item.observaciones || '').match(/^\[LIBRE:\s*([^\]]+)\]/i)
+    if (matchLibre && (nombreMostrar === 'Producto' || nombreMostrar === 'Ítem Libre')) {
+      nombreMostrar = matchLibre[1].trim()
+    }
+
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(15.5)
     const textoPrecio = `$${Number(item.subtotal || 0).toLocaleString('es-CO')}`
     doc.text(textoPrecio, derecha, y, { align: 'right' })
 
     y = escribirTextoConSalto(
-      `${item.cantidad}x ${item.nombre}`,
+      `${item.cantidad}x ${nombreMostrar}`,
       izquierda,
       y,
       16.5,
@@ -213,6 +222,12 @@ function renderizarContenidoTicket(doc: jsPDF, datos: DatosComandaCocina): numbe
         } else if (bUpper.startsWith('NOTA:')) {
           const contenido = bTrim.replace(/^NOTA:\s*/i, '')
           if (contenido.trim()) listaNotas.push(contenido.trim())
+        } else if (
+          bTrim === 'Ítem cobrado directamente' ||
+          bUpper.startsWith('[LIBRE:') ||
+          bUpper.startsWith('[CONCEPTO:')
+        ) {
+          // Ignorar texto de relleno o prefijo interno
         } else {
           listaNotas.push(bTrim)
         }

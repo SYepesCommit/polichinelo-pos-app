@@ -81,6 +81,21 @@ export interface IElectronAPI {
     montoEfectivo?: number
     montoTransferencia?: number
   }) => Promise<{ ok: boolean }>
+  editarDatosVenta: (data: {
+    pedidoId: number
+    tipoPedido: string
+    nombreCliente: string
+    telefono?: string
+    direccion?: string
+    referenciaDireccion?: string
+    montoDomicilio?: number
+    observacionesGenerales?: string
+    metodoPago?: string
+    bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
+  }) => Promise<{ ok: boolean }>
   exportarReporteCsv: (
     filtros: FiltrosHistorial
   ) => Promise<{ ok: boolean; filePath?: string; cancelado?: boolean; error?: string }>

@@ -54,6 +54,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     montoEfectivo?: number
     montoTransferencia?: number
   }) => ipcRenderer.invoke('cambiar-metodo-pago-venta', data),
+  editarDatosVenta: (data: {
+    pedidoId: number
+    tipoPedido: string
+    nombreCliente: string
+    telefono?: string
+    direccion?: string
+    referenciaDireccion?: string
+    montoDomicilio?: number
+    observacionesGenerales?: string
+    metodoPago?: string
+    bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
+  }) => ipcRenderer.invoke('editar-datos-venta', data),
   exportarReporteCsv: (filtros: any) => ipcRenderer.invoke('exportar-reporte-csv', filtros),
   getProductos: () => ipcRenderer.invoke('get-productos'),
   getCategorias: () => ipcRenderer.invoke('get-categorias'),

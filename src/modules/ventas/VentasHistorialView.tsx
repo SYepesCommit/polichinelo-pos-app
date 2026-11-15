@@ -10,6 +10,7 @@ import { VentasPagination } from './VentasPagination'
 import { RankingProductosModal } from './RankingProductosModal'
 import { DesgloseBancosModal } from './DesgloseBancosModal'
 import { CambiarMetodoPagoModal } from './CambiarMetodoPagoModal'
+import { EditarPedidoModal } from './EditarPedidoModal'
 import { LiquidacionDomiciliosModal } from './LiquidacionDomiciliosModal'
 
 export const VentasHistorialView: React.FC = () => {
@@ -76,6 +77,7 @@ export const VentasHistorialView: React.FC = () => {
         setVentaADesanular={hook.setVentaADesanular}
         handleAbrirAnulacion={hook.handleAbrirAnulacion}
         handleAbrirCambiarPago={(v) => hook.setVentaACambiarPago(v)}
+        handleAbrirEditarPedido={(v) => hook.setVentaAEditar(v)}
         formatMoneda={formatMoneda}
       />
 
@@ -144,6 +146,15 @@ export const VentasHistorialView: React.FC = () => {
         bancos={hook.bancos}
         onCerrar={() => hook.setVentaACambiarPago(null)}
         onConfirmarCambio={hook.handleConfirmarCambioPago}
+        formatMoneda={formatMoneda}
+      />
+
+      <EditarPedidoModal
+        venta={hook.ventaAEditar}
+        metodosPago={hook.metodosPago}
+        bancos={hook.bancos}
+        onCerrar={() => hook.setVentaAEditar(null)}
+        onConfirmarEdicion={hook.handleConfirmarEdicionPedido}
         formatMoneda={formatMoneda}
       />
 

@@ -79,9 +79,13 @@ const construirObservacion = (
   }
 
   if (adicionesPagas.length > 0) {
-    const itemsAdiciones = adicionesPagas.map(
-      (a) => `${a.nombre} (+$${a.precio.toLocaleString('es-CO')})`
-    )
+    const itemsAdiciones = adicionesPagas.map((a) => {
+      const cant = a.cantidad && a.cantidad > 1 ? a.cantidad : 1
+      const subtotalAdicion = a.precio * cant
+      return cant > 1
+        ? `${cant}x ${a.nombre} (+$${subtotalAdicion.toLocaleString('es-CO')})`
+        : `${a.nombre} (+$${a.precio.toLocaleString('es-CO')})`
+    })
     partes.push(`ADICIÓN: ${itemsAdiciones.join(', ')}`)
   }
 
@@ -142,9 +146,18 @@ export const useNoteModal = ({
             .split(', ')
             .map((a) => a.trim())
           items.forEach((item) => {
-            const encontrada = adicionesDisponibles.find((ad) => item.startsWith(ad.nombre))
+            const matchCant = item.match(/^(\d+)x\s+(.+)$/i)
+            const cantDetectada = matchCant ? Math.max(1, parseInt(matchCant[1], 10)) : 1
+            const textoSinCant = matchCant ? matchCant[2].trim() : item
+
+            const encontrada = adicionesDisponibles.find((ad) =>
+              textoSinCant.startsWith(ad.nombre)
+            )
             if (encontrada) {
-              pagasList.push(encontrada)
+              pagasList.push({
+                ...encontrada,
+                cantidad: cantDetectada,
+              })
             }
           })
         } else if (pTrim.startsWith('NOTA: ')) {
@@ -195,11 +208,35 @@ export const useNoteModal = ({
       const existe = prev.some((a) => a.nombre === adicion.nombre)
       return existe
         ? prev.filter((a) => a.nombre !== adicion.nombre)
-        : [...prev, adicion]
+        : [...prev, { ...adicion, cantidad: 1 }]
     })
   }
 
-  const costoAdiciones = adicionesPAGAS.reduce((sum, a) => sum + a.precio, 0)
+  const cambiarCantidadAdicionPaga = (adicion: AdicionConPrecio, delta: number) => {
+    setAdicionesPAGAS((prev) => {
+      const existente = prev.find((a) => a.nombre === adicion.nombre)
+      if (!existente) {
+        if (delta > 0) {
+          return [...prev, { ...adicion, cantidad: delta }]
+        }
+        return prev
+      }
+
+      const nuevaCant = (existente.cantidad || 1) + delta
+      if (nuevaCant <= 0) {
+        return prev.filter((a) => a.nombre !== adicion.nombre)
+      }
+
+      return prev.map((a) =>
+        a.nombre === adicion.nombre ? { ...a, cantidad: nuevaCant } : a
+      )
+    })
+  }
+
+  const costoAdiciones = adicionesPAGAS.reduce(
+    (sum, a) => sum + a.precio * (a.cantidad || 1),
+    0
+  )
   const precioBase = productoAEditar.producto.precioBase || productoAEditar.producto.precio
   const precioFinalUnitario = precioBase + costoAdiciones
 
@@ -233,6 +270,7 @@ export const useNoteModal = ({
     setNotasGenerales,
     toggleIngredienteSin,
     toggleAdicionPaga,
+    cambiarCantidadAdicionPaga,
     handleGuardar,
   }
 }

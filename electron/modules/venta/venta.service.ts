@@ -213,6 +213,200 @@ export const ventaService = {
     }
   },
 
+  // 5b. Editar datos operativos de un pedido existente (sin alterar productos de cocina)
+  async editarDatosVenta(data: {
+    pedidoId: number
+    tipoPedido: string
+    nombreCliente: string
+    telefono?: string
+    direccion?: string
+    referenciaDireccion?: string
+    montoDomicilio?: number
+    observacionesGenerales?: string
+    metodoPago?: string
+    bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
+  }) {
+    try {
+      const idNum = Number(data.pedidoId)
+      const pedido = await prisma.pedido.findUnique({
+        where: { id: idNum },
+        include: { detalles: true, pagos: true, cliente: true },
+      })
+
+      if (!pedido) {
+        throw new Error('El pedido no existe.')
+      }
+
+      const subtotalProductos = (pedido.detalles || []).reduce(
+        (acc, d) => acc + Number(d.subtotal || Number(d.cantidad) * Number(d.precioUnitario)),
+        0
+      )
+
+      const tipoLimpio = (data.tipoPedido || pedido.tipoPedido || 'MESA').toUpperCase()
+      const nuevoMontoDomicilio =
+        tipoLimpio === 'DOMICILIO' ? Math.max(0, Number(data.montoDomicilio || 0)) : 0
+      const nuevoTotal = subtotalProductos + nuevoMontoDomicilio
+      const diferenciaTotal = nuevoTotal - Number(pedido.total || 0)
+
+      let snapshotExistente: any = null
+      if (
+        typeof pedido.detallesDestino === 'string' &&
+        pedido.detallesDestino.trim().startsWith('{')
+      ) {
+        try {
+          snapshotExistente = JSON.parse(pedido.detallesDestino)
+        } catch {
+          snapshotExistente = null
+        }
+      }
+
+      const nombreLimpio = data.nombreCliente?.trim() || 'Cliente Mostrador'
+      const telefonoLimpio = data.telefono?.trim() || ''
+      const direccionLimpia = data.direccion?.trim() || ''
+      const referenciaLimpia = data.referenciaDireccion?.trim() || ''
+      const obsGeneralesLimpias = data.observacionesGenerales?.trim() || null
+      const bancoIdFinal = data.bancoId && data.bancoId.trim() ? data.bancoId.trim() : null
+
+      return await prisma.$transaction(async (tx) => {
+        let clienteIdFinal = pedido.clienteId
+
+        if (telefonoLimpio && nombreLimpio) {
+          const clienteActualizado = await tx.cliente.upsert({
+            where: { telefono: telefonoLimpio },
+            update: {
+              nombre: nombreLimpio,
+              direccion: direccionLimpia || 'Sin dirección',
+              referenciaDireccion: referenciaLimpia || null,
+            },
+            create: {
+              telefono: telefonoLimpio,
+              nombre: nombreLimpio,
+              direccion: direccionLimpia || 'Sin dirección',
+              referenciaDireccion: referenciaLimpia || null,
+            },
+          })
+          clienteIdFinal = clienteActualizado.id
+        } else if (pedido.clienteId && !telefonoLimpio) {
+          await tx.cliente.update({
+            where: { id: pedido.clienteId },
+            data: {
+              nombre: nombreLimpio,
+              ...(direccionLimpia ? { direccion: direccionLimpia } : {}),
+              referenciaDireccion: referenciaLimpia || null,
+            },
+          })
+        }
+
+        const tieneDatosExtra =
+          Boolean(telefonoLimpio) ||
+          Boolean(direccionLimpia) ||
+          Boolean(referenciaLimpia) ||
+          tipoLimpio === 'DOMICILIO' ||
+          snapshotExistente?.montoRecibido !== undefined
+
+        const nuevoDetallesDestino = tieneDatosExtra
+          ? JSON.stringify({
+              nombre: nombreLimpio,
+              telefono: telefonoLimpio,
+              direccion: direccionLimpia,
+              referenciaDireccion: referenciaLimpia,
+              ...(snapshotExistente?.montoRecibido !== undefined
+                ? {
+                    montoRecibido: Number(snapshotExistente.montoRecibido),
+                    cambio: Math.max(
+                      0,
+                      Number(snapshotExistente.montoRecibido) - nuevoTotal
+                    ),
+                  }
+                : {}),
+            })
+          : nombreLimpio
+
+        await tx.pedido.update({
+          where: { id: idNum },
+          data: {
+            clienteId: clienteIdFinal,
+            tipoPedido: tipoLimpio,
+            detallesDestino: nuevoDetallesDestino,
+            observacionesGenerales: obsGeneralesLimpias,
+            montoDomicilio: nuevoMontoDomicilio,
+            total: nuevoTotal,
+          },
+        })
+
+        // Si viene actualización explícita de método de pago o si cambió el total
+        if (data.metodoPago) {
+          await tx.pagoDetalle.deleteMany({
+            where: { pedidoId: idNum },
+          })
+
+          if (data.esMixto) {
+            const montoTransf = Number(data.montoTransferencia || 0)
+            const montoEfvo = Number(
+              data.montoEfectivo !== undefined
+                ? data.montoEfectivo
+                : Math.max(0, nuevoTotal - montoTransf)
+            )
+
+            if (montoTransf > 0) {
+              await tx.pagoDetalle.create({
+                data: {
+                  pedidoId: idNum,
+                  metodoPago: 'TRANSFERENCIA',
+                  bancoId: bancoIdFinal,
+                  monto: montoTransf,
+                },
+              })
+            }
+            if (montoEfvo > 0) {
+              await tx.pagoDetalle.create({
+                data: {
+                  pedidoId: idNum,
+                  metodoPago: 'EFECTIVO',
+                  bancoId: null,
+                  monto: montoEfvo,
+                },
+              })
+            }
+          } else {
+            await tx.pagoDetalle.create({
+              data: {
+                pedidoId: idNum,
+                metodoPago: data.metodoPago,
+                bancoId: bancoIdFinal,
+                monto: nuevoTotal,
+              },
+            })
+          }
+        } else if (diferenciaTotal !== 0 && pedido.pagos.length > 0) {
+          if (pedido.pagos.length === 1) {
+            await tx.pagoDetalle.update({
+              where: { id: pedido.pagos[0].id },
+              data: { monto: nuevoTotal },
+            })
+          } else {
+            const pagoEfectivo =
+              pedido.pagos.find((pg) => pg.metodoPago.toUpperCase().includes('EFECTIVO')) ||
+              pedido.pagos[0]
+            const nuevoMontoPago = Math.max(0, Number(pagoEfectivo.monto || 0) + diferenciaTotal)
+            await tx.pagoDetalle.update({
+              where: { id: pagoEfectivo.id },
+              data: { monto: nuevoMontoPago },
+            })
+          }
+        }
+
+        return { ok: true }
+      })
+    } catch (error) {
+      console.error('Error al editar datos de la venta:', error)
+      throw error
+    }
+  },
+
   // 6. Exportar reporte completo a CSV (compatible con Excel en español)
   async exportarReporteCsv(filtros: FiltrosHistorial) {
     try {
@@ -485,21 +679,47 @@ export const ventaService = {
         pagos: pagosLista,
         estado: p.estado || 'REALIZADO',
         motivoAnulacion: p.motivoAnulacion || null,
-        items: (p.detalles || []).map((d: any) => ({
-          id: d.id,
-          productoId: d.productoId,
-          nombre: d.producto?.nombre || 'Producto',
-          cantidad: d.cantidad,
-          precioUnitario: d.precioUnitario,
-          subtotal: d.subtotal,
-          observaciones: d.observaciones,
-          producto: d.producto
-            ? {
-                id: d.producto.id,
-                nombre: d.producto.nombre,
-              }
-            : undefined,
-        })),
+        items: (p.detalles || []).map((d: any) => {
+          let nombre = d.producto?.nombre
+          let obs = d.observaciones || ''
+
+          if (!nombre && obs) {
+            const match = obs.match(/^\[LIBRE:\s*([^\]]+)\]/i)
+            if (match) {
+              nombre = match[1].trim()
+              obs = obs.replace(/^\[LIBRE:\s*[^\]]+\]\s*(\|\s*)?/i, '').trim()
+            } else if (obs === 'Ítem cobrado directamente') {
+              nombre = 'Ítem Libre'
+              obs = ''
+            } else {
+              nombre = obs
+              obs = ''
+            }
+          }
+
+          if (obs === 'Ítem cobrado directamente') {
+            obs = ''
+          }
+
+          return {
+            id: d.id,
+            productoId: d.productoId,
+            nombre: nombre || 'Ítem Libre',
+            cantidad: d.cantidad,
+            precioUnitario: d.precioUnitario,
+            subtotal: d.subtotal,
+            observaciones: obs || undefined,
+            producto: d.producto
+              ? {
+                  id: d.producto.id,
+                  nombre: d.producto.nombre,
+                }
+              : {
+                  id: 'item-libre',
+                  nombre: nombre || 'Ítem Libre',
+                },
+          }
+        }),
       }
     })
   },

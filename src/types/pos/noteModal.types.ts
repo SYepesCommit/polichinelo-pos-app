@@ -3,6 +3,7 @@ import { ItemCarrito } from '../../types/pos/pos'
 export interface AdicionConPrecio {
   nombre: string
   precio: number
+  cantidad?: number
 }
 
 export interface NoteModalProps {
@@ -41,5 +42,6 @@ export interface UseNoteModalReturn {
   setNotasGenerales: (texto: string) => void
   toggleIngredienteSin: (ing: string) => void
   toggleAdicionPaga: (adicion: AdicionConPrecio) => void
+  cambiarCantidadAdicionPaga: (adicion: AdicionConPrecio, delta: number) => void
   handleGuardar: () => void
 }

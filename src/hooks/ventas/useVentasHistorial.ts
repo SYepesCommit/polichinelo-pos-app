@@ -95,6 +95,7 @@ export const useVentasHistorial = () => {
   const [modalRankingAbierto, setModalRankingAbierto] = useState(false)
   const [modalBancosAbierto, setModalBancosAbierto] = useState(false)
   const [ventaACambiarPago, setVentaACambiarPago] = useState<VentaResumen | null>(null)
+  const [ventaAEditar, setVentaAEditar] = useState<VentaResumen | null>(null)
   const [ventaAAnular, setVentaAAnular] = useState<VentaResumen | null>(null)
   const [motivoAnulacion, setMotivoAnulacion] = useState('Error de digitación en caja')
   const [otroMotivo, setOtroMotivo] = useState('')
@@ -261,7 +262,7 @@ export const useVentasHistorial = () => {
           : undefined,
       items: (venta.items || []).map((item: any) => ({
         cantidad: item.cantidad,
-        nombre: item.producto?.nombre || item.nombre || 'Producto',
+        nombre: item.nombre || item.producto?.nombre || 'Producto',
         observaciones: item.observaciones || undefined,
         precioUnitario: item.precioUnitario,
         subtotal: item.subtotal,
@@ -330,6 +331,26 @@ export const useVentasHistorial = () => {
   }) => {
     if (!window.electronAPI?.cambiarMetodoPagoVenta) return
     await window.electronAPI.cambiarMetodoPagoVenta(data)
+    await cargarVentas()
+  }
+
+  const handleConfirmarEdicionPedido = async (data: {
+    pedidoId: number
+    tipoPedido: string
+    nombreCliente: string
+    telefono?: string
+    direccion?: string
+    referenciaDireccion?: string
+    montoDomicilio?: number
+    observacionesGenerales?: string
+    metodoPago?: string
+    bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
+  }) => {
+    if (!window.electronAPI?.editarDatosVenta) return
+    await window.electronAPI.editarDatosVenta(data)
     await cargarVentas()
   }
 
@@ -430,6 +451,8 @@ export const useVentasHistorial = () => {
     setModalBancosAbierto,
     ventaACambiarPago,
     setVentaACambiarPago,
+    ventaAEditar,
+    setVentaAEditar,
     ventaAAnular,
     setVentaAAnular,
     handleAbrirAnulacion,
@@ -454,6 +477,7 @@ export const useVentasHistorial = () => {
     handleConfirmarAnulacion,
     handleConfirmarDesanulacion,
     handleConfirmarCambioPago,
+    handleConfirmarEdicionPedido,
     handleExportarCsv,
     recargarVentas: recargarArqueoCompleto,
     ...gastosHook,

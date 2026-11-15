@@ -159,6 +159,7 @@ export async function ensureDatabaseReady(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "Producto_categoriaId_idx" ON "Producto"("categoriaId")`,
       `CREATE INDEX IF NOT EXISTS "Producto_activo_idx" ON "Producto"("activo")`,
       `INSERT OR IGNORE INTO "Ingrediente" ("nombre") VALUES ('Salsa Rosada'), ('Salsa de Piña'), ('Salsa Tártara'), ('Salsa BBQ'), ('Salsa Chimichurri')`,
+      `UPDATE "Producto" SET "nombre" = 'Porción de Huevitos' WHERE "nombre" = 'Porción de Huevitos (3 Huevitos)' OR "nombre" LIKE '%Huevitos (3%' OR "nombre" LIKE '%Huevos x3%' OR "nombre" LIKE '%Huevitos x3%'`,
     ]
 
     for (const sql of ddlStatements) {

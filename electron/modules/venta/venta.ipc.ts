@@ -41,6 +41,31 @@ export function registerVentaIpc() {
     }
   )
 
+  ipcMain.removeHandler('editar-datos-venta')
+  ipcMain.handle(
+    'editar-datos-venta',
+    async (
+      _,
+      data: {
+        pedidoId: number
+        tipoPedido: string
+        nombreCliente: string
+        telefono?: string
+        direccion?: string
+        referenciaDireccion?: string
+        montoDomicilio?: number
+        observacionesGenerales?: string
+        metodoPago?: string
+        bancoId?: string | null
+        esMixto?: boolean
+        montoEfectivo?: number
+        montoTransferencia?: number
+      }
+    ) => {
+      return await ventaService.editarDatosVenta(data)
+    }
+  )
+
   ipcMain.removeHandler('exportar-reporte-csv')
   ipcMain.handle('exportar-reporte-csv', async (_, filtros) => {
     return await ventaService.exportarReporteCsv(filtros)

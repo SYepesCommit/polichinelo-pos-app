@@ -30,6 +30,7 @@ export const VentasList: React.FC<VentasListProps> = ({
   setVentaADesanular,
   handleAbrirAnulacion,
   handleAbrirCambiarPago,
+  handleAbrirEditarPedido,
   formatMoneda,
 }) => {
   const renderIconoTipo = (tipo: string) => {
@@ -217,6 +218,17 @@ export const VentasList: React.FC<VentasListProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {!esAnulado && handleAbrirEditarPedido && (
+                      <button
+                        type="button"
+                        onClick={() => handleAbrirEditarPedido(v)}
+                        className="p-3 bg-sky-500/10 border border-sky-500/30 text-sky-400 hover:bg-sky-500 hover:text-slate-950 rounded-xl transition active:scale-95"
+                        title="Editar Datos del Pedido (Requiere PIN)"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => handleReimprimir(v)}

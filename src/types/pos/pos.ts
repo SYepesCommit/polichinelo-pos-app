@@ -54,6 +54,7 @@ export interface PagoInput {
 
 export interface DetallePedidoInput {
   productoId: string
+  nombre?: string
   cantidad: number
   precioUnitario: number
   observaciones?: string

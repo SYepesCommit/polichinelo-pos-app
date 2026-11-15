@@ -390,7 +390,7 @@ export async function sembrarMenuInicial(prisma: PrismaClient): Promise<void> {
           { nombre: 'Porción de Tocineta', precioVenta: 3500 },
           { nombre: 'Porción de Queso', precioVenta: 3500 },
           { nombre: 'Porción de Ensalada', precioVenta: 5000 },
-          { nombre: 'Porción de Huevitos (3 Huevitos)', precioVenta: 2500 },
+          { nombre: 'Porción de Huevitos', precioVenta: 2500 },
         ],
       },
     },

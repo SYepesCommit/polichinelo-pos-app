@@ -47,16 +47,17 @@ export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) =>
   }
 
   const handleAgregarItemLibre = (nombreConcepto: string, precio: number) => {
+    const conceptoLimpio = nombreConcepto.trim()
     const itemLibre: ItemCarrito = {
       idTemp: `libre-${Date.now()}`,
       producto: {
         id: 'item-libre',
-        nombre: `[Varios] ${nombreConcepto}`,
+        nombre: conceptoLimpio,
         precio,
         precioBase: precio,
       },
       cantidad: 1,
-      observaciones: 'Ítem cobrado directamente',
+      observaciones: '',
     }
     setCarrito((prev) => [...prev, itemLibre])
   }
@@ -64,10 +65,13 @@ export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) =>
   const guardarObservacion = (
     idTemp: string,
     nuevasNotas: string,
-    adicionesPrecios: { nombre: string; precio: number }[]
+    adicionesPrecios: { nombre: string; precio: number; cantidad?: number }[]
   ) => {
     const notasLimpias = nuevasNotas.trim()
-    const extraAdiciones = adicionesPrecios.reduce((sum, a) => sum + a.precio, 0)
+    const extraAdiciones = adicionesPrecios.reduce(
+      (sum, a) => sum + a.precio * (a.cantidad || 1),
+      0
+    )
     setCarrito((prev) => {
       const existeEnCarrito = prev.some((item) => item.idTemp === idTemp)
       if (existeEnCarrito) {

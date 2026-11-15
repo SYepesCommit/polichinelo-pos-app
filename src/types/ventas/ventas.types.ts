@@ -202,6 +202,29 @@ export interface CambiarMetodoPagoModalProps {
   formatMoneda: (monto: number) => string
 }
 
+export interface EditarPedidoModalProps {
+  venta: VentaResumen | null
+  metodosPago: MetodoPago[]
+  bancos: Banco[]
+  onCerrar: () => void
+  onConfirmarEdicion: (data: {
+    pedidoId: number
+    tipoPedido: string
+    nombreCliente: string
+    telefono?: string
+    direccion?: string
+    referenciaDireccion?: string
+    montoDomicilio?: number
+    observacionesGenerales?: string
+    metodoPago?: string
+    bancoId?: string | null
+    esMixto?: boolean
+    montoEfectivo?: number
+    montoTransferencia?: number
+  }) => Promise<void>
+  formatMoneda: (monto: number) => string
+}
+
 export interface VentasFiltersProps {
   busqueda: string
   setBusqueda: (v: string) => void
@@ -262,6 +285,7 @@ export interface VentasListProps {
   setVentaADesanular: (v: VentaResumen) => void
   handleAbrirAnulacion: (v: VentaResumen) => void
   handleAbrirCambiarPago: (v: VentaResumen) => void
+  handleAbrirEditarPedido?: (v: VentaResumen) => void
   formatMoneda: (monto: number) => string
 }
 

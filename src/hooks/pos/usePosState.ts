@@ -83,7 +83,7 @@ export const usePosState = () => {
     if (carritoHook.carrito.length === 0 && !pedidoRespuesta) return
 
     const itemsFormateados = (pedidoRespuesta?.detalles || carritoHook.carrito).map((item: any) => ({
-      nombre: item.producto?.nombre || item.nombre,
+      nombre: item.producto?.nombre || item.nombre || 'Ítem',
       cantidad: item.cantidad,
       precioUnitario: item.precioUnitario || item.producto?.precio || 0,
       subtotal: item.subtotal || (item.producto?.precio || 0) * item.cantidad,
@@ -162,6 +162,7 @@ export const usePosState = () => {
       await clienteHook.guardarClienteAlCobrar()
       const detallesPayload: DetallePedidoInput[] = carritoHook.carrito.map((item) => ({
         productoId: item.producto.id,
+        nombre: item.producto.nombre,
         cantidad: item.cantidad,
         precioUnitario: item.producto.precio,
         observaciones: item.observaciones || undefined,
@@ -288,7 +289,11 @@ export const usePosState = () => {
           c.nombre.toLowerCase().includes('adiciones')
       )
       ?.productos.map((p) => ({
-        nombre: p.nombre.replace(/^Porción de\s+/i, ''),
+        nombre: p.nombre
+          .replace(/^Porción de\s+/i, '')
+          .replace(/\s*\(3\s*Huevitos?\)/i, '')
+          .replace(/\s*x3\b/i, '')
+          .trim(),
         precio: p.precio,
       })) || []
 

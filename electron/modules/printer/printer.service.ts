@@ -86,10 +86,25 @@ export function generarHtmlComanda(datos: any): string {
           } else if (bUpper.startsWith('NOTA:')) {
             const contenido = bTrim.replace(/^NOTA:\s*/i, '')
             if (contenido.trim()) listaNotas.push(contenido.trim())
+          } else if (
+            bTrim === 'Ítem cobrado directamente' ||
+            bUpper.startsWith('[LIBRE:') ||
+            bUpper.startsWith('[CONCEPTO:')
+          ) {
+            // Ignorar texto de relleno o prefijo interno
           } else {
             listaNotas.push(bTrim)
           }
         })
+      }
+
+      let nombreLimpio = (item.nombre || item.producto?.nombre || 'Producto')
+        .replace(/^\[Varios\]\s*/i, '')
+        .trim()
+
+      const matchLibre = (item.observaciones || '').match(/^\[LIBRE:\s*([^\]]+)\]/i)
+      if (matchLibre && (nombreLimpio === 'Producto' || nombreLimpio === 'Ítem Libre')) {
+        nombreLimpio = matchLibre[1].trim()
       }
 
       const carneHtml = carneElegida
@@ -139,7 +154,7 @@ export function generarHtmlComanda(datos: any): string {
       return `
         <div class="item-block">
           <div class="row">
-            <span class="col-cant-nombre">${item.cantidad}x ${escapeHtml(item.nombre)}</span>
+            <span class="col-cant-nombre">${item.cantidad}x ${escapeHtml(nombreLimpio)}</span>
             <span class="col-subtotal">$${Number(item.subtotal || 0).toLocaleString('es-CO')}</span>
           </div>
           ${carneHtml}

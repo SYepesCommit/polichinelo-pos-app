@@ -15,6 +15,7 @@ export const pedidoService = {
     }
     detalles: Array<{
       productoId: string | number
+      nombre?: string
       cantidad: number
       precioUnitario: number
       observaciones?: string
@@ -55,11 +56,20 @@ export const pedidoService = {
           const isNum = !isNaN(Number(d.productoId)) && d.productoId !== 'item-libre'
           const productoIdFinal = isNum ? Number(d.productoId) : null
           const subtotalItem = Number(d.cantidad) * Number(d.precioUnitario)
+          let obsFinal = d.observaciones?.trim() || null
+
+          if (!productoIdFinal && d.nombre && d.nombre.trim()) {
+            const conceptoLimpio = d.nombre.trim()
+            obsFinal = obsFinal
+              ? `[LIBRE: ${conceptoLimpio}] | ${obsFinal}`
+              : `[LIBRE: ${conceptoLimpio}]`
+          }
+
           return {
             productoId: productoIdFinal,
             cantidad: Number(d.cantidad),
             precioUnitario: Number(d.precioUnitario),
-            observaciones: d.observaciones || null,
+            observaciones: obsFinal,
             subtotal: subtotalItem,
           }
         })
@@ -131,7 +141,33 @@ export const pedidoService = {
       // Actualizar copia del día en segundo plano si hoy es de jueves a domingo
       backupService.ejecutarBackup('AUTOMATICO').catch(() => {})
 
-      return pedidoCreado
+      // Normalizar detalles para devolver el concepto real de ítems libres al frontend
+      const pedidoConNombres = {
+        ...pedidoCreado,
+        detalles: (pedidoCreado.detalles || []).map((d: any) => {
+          let nombre = d.producto?.nombre
+          let obs = d.observaciones || ''
+
+          if (!nombre && obs) {
+            const match = obs.match(/^\[LIBRE:\s*([^\]]+)\]/i)
+            if (match) {
+              nombre = match[1].trim()
+              obs = obs.replace(/^\[LIBRE:\s*[^\]]+\]\s*(\|\s*)?/i, '').trim()
+            }
+          }
+
+          return {
+            ...d,
+            nombre: nombre || 'Ítem Libre',
+            observaciones: obs || '',
+            producto: d.producto
+              ? d.producto
+              : { id: 'item-libre', nombre: nombre || 'Ítem Libre' },
+          }
+        }),
+      }
+
+      return pedidoConNombres
     } catch (error) {
       console.error('Error al registrar pedido (transacción abortada):', error)
       throw error

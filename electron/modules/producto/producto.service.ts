@@ -70,7 +70,8 @@ export const productoService = {
             ...prod,
             id: String(prod.id),
             precio: Number(prod.precioVenta),
-            descripcion: nombresIngredientes.join(', ') || null,
+            descripcion: prod.descripcion || nombresIngredientes.join(', ') || null,
+            aliasWhatsApp: prod.descripcion || null,
             ingredientes: nombresIngredientes,
           }
         }),
@@ -303,6 +304,7 @@ export const productoService = {
           activo: dto.activo ?? true,
           esEspecial: dto.esEspecial ?? false,
           imagenUrl: dto.imagenUrl || null,
+          descripcion: dto.descripcion?.trim() || dto.aliasWhatsApp?.trim() || null,
           ...(ingredientesArray.length > 0
             ? {
                 ingredientes: {
@@ -361,6 +363,9 @@ export const productoService = {
           ...(dto.activo !== undefined ? { activo: dto.activo } : {}),
           ...(dto.esEspecial !== undefined ? { esEspecial: dto.esEspecial } : {}),
           ...(dto.imagenUrl !== undefined ? { imagenUrl: dto.imagenUrl || null } : {}),
+          ...(dto.descripcion !== undefined || dto.aliasWhatsApp !== undefined
+            ? { descripcion: dto.descripcion?.trim() || dto.aliasWhatsApp?.trim() || null }
+            : {}),
         }
 
         if (dto.ingredientes !== undefined) {

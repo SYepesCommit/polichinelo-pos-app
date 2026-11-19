@@ -27,6 +27,8 @@ export const ProductoModal: React.FC<ProductoModalProps> = ({
     setEsEspecial,
     activo,
     setActivo,
+    aliasWhatsApp,
+    setAliasWhatsApp,
     guardando,
     pv,
     ganancia,
@@ -80,6 +82,26 @@ export const ProductoModal: React.FC<ProductoModalProps> = ({
               placeholder="Ej. Hamburguesa Especial..."
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500"
             />
+          </div>
+
+          {/* PALABRAS CLAVE / ALIAS PARA WHATSAPP */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-emerald-400" />
+                <span>Palabras Clave / Alias para WhatsApp (Opcional)</span>
+              </label>
+            </div>
+            <input
+              type="text"
+              value={aliasWhatsApp}
+              onChange={(e) => setAliasWhatsApp(e.target.value)}
+              placeholder="Ej: coca, cocacola, coquita, gaseosa negra (separados por coma)"
+              className="w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-100 placeholder:text-slate-600 focus:outline-none"
+            />
+            <p className="text-[10px] text-slate-500 mt-1">
+              Apodos o términos con los que los clientes suelen pedir este producto en el chat.
+            </p>
           </div>
 
           {/* INGREDIENTES CON TAG INPUT INTERACTIVO */}

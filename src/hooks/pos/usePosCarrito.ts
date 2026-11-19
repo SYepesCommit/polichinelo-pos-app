@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { ItemCarrito, Producto, TipoPedido } from '@/types/pos/pos'
-import { requiereElegirCarne } from './useNoteModal'
 
 export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) => {
   const [carrito, setCarrito] = useState<ItemCarrito[]>([])
@@ -17,12 +16,6 @@ export const usePosCarrito = (tipoPedido: TipoPedido, montoDomicilio: number) =>
   }
 
   const agregarProductoRapido = (producto: Producto) => {
-    // Si es Arepaburguer o Hamburguesa (Descarada, Ranchera, etc.), abrir modal para elegir carne y salsas
-    if (requiereElegirCarne(producto)) {
-      handleAbrirPersonalizacion(producto)
-      return
-    }
-
     setCarrito((prev) => {
       const existeSinNotas = prev.find(
         (item) => item.producto.id === producto.id && !item.observaciones?.trim()

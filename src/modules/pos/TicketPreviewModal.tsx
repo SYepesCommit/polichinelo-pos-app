@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { X, Download, ExternalLink, Printer } from 'lucide-react'
+import { X, Download, ExternalLink, Printer, Copy, Check } from 'lucide-react'
 import { DatosComandaCocina } from '../../types/pos/posView.types'
 import { generarTicketPDF } from '../../services/ticketPdf.service'
+import { generarTextoResumenDesdeTicket } from '../../utils/whatsappPos.utils'
 
 interface TicketPreviewModalProps {
   datosTicket: DatosComandaCocina
@@ -15,7 +16,19 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [imprimiendo, setImprimiendo] = useState(false)
   const [copiasImpresas, setCopiasImpresas] = useState(0)
+  const [copiadoWA, setCopiadoWA] = useState(false)
   const [mensajeEstado, setMensajeEstado] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
+
+  const handleCopiarParaWhatsApp = async () => {
+    try {
+      const texto = generarTextoResumenDesdeTicket(datosTicket)
+      await navigator.clipboard.writeText(texto)
+      setCopiadoWA(true)
+      setTimeout(() => setCopiadoWA(false), 2200)
+    } catch (error) {
+      console.error('Error copiando resumen para WhatsApp:', error)
+    }
+  }
 
   useEffect(() => {
     const doc = generarTicketPDF(datosTicket)
@@ -94,13 +107,32 @@ export const TicketPreviewModal: React.FC<TicketPreviewModalProps> = ({
               Comanda #{datosTicket.consecutivo}
             </h3>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition active:scale-95"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleCopiarParaWhatsApp}
+              className={`py-1.5 px-3 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border active:scale-95 ${
+                copiadoWA
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
+                  : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/30'
+              }`}
+              title="Copiar confirmación de pedido para WhatsApp"
+            >
+              {copiadoWA ? (
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 text-emerald-400" />
+              )}
+              <span>{copiadoWA ? '¡Copiado!' : 'Copiar para WhatsApp'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-100 p-1 rounded-lg hover:bg-slate-800 transition active:scale-95"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* VISOR DE PDF EMBEBIDO */}

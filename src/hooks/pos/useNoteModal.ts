@@ -103,17 +103,14 @@ export const useNoteModal = ({
   setProductoAEditar,
 }: UseNoteModalProps): UseNoteModalReturn => {
   const requiereCarne = requiereElegirCarne(productoAEditar.producto)
-  const [carneSeleccionada, setCarneSeleccionada] = useState<string>(() =>
-    requiereCarne ? detectarCarnePorDefecto(productoAEditar.producto.nombre) : ''
-  )
+  const [carneSeleccionada, setCarneSeleccionada] = useState<string>('')
   const [salsasSeleccionadas, setSalsasSeleccionadas] = useState<string[]>([])
   const [ingredientesSin, setIngredientesSin] = useState<string[]>([])
   const [adicionesPAGAS, setAdicionesPAGAS] = useState<AdicionConPrecio[]>([])
   const [notasGenerales, setNotasGenerales] = useState<string>('')
 
   useEffect(() => {
-    const reqCarne = requiereElegirCarne(productoAEditar.producto)
-    let carneInicial = reqCarne ? detectarCarnePorDefecto(productoAEditar.producto.nombre) : ''
+    let carneInicial = ''
     const salsasList: string[] = []
     const sinList: string[] = []
     const pagasList: AdicionConPrecio[] = []
@@ -241,7 +238,6 @@ export const useNoteModal = ({
   const precioFinalUnitario = precioBase + costoAdiciones
 
   const handleGuardar = () => {
-    if (requiereCarne && !carneSeleccionada.trim()) return
     const notaFinal = construirObservacion(
       carneSeleccionada,
       salsasSeleccionadas,

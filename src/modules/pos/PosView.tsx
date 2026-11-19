@@ -8,6 +8,7 @@ import { NoteModal } from './NoteModal'
 import { PlatoDelDiaModal } from './PlatoDelDiaModal'
 import { NuevoEspecialModal } from './NuevoEspecialModal'
 import { TicketPreviewModal } from './TicketPreviewModal'
+import { WhatsAppParserModal } from './WhatsAppParserModal'
 
 export const PosView: React.FC = () => {
   const pos = usePosState()
@@ -34,6 +35,10 @@ export const PosView: React.FC = () => {
           handleBuscarCliente={pos.handleBuscarCliente}
           observacionesGenerales={pos.observacionesGenerales}
           setObservacionesGenerales={pos.setObservacionesGenerales}
+          onAbrirWhatsAppModal={() => pos.setMostrarModalWhatsApp(true)}
+          onPegarTelefonoRapido={pos.handlePegarTelefonoRapido}
+          ultimoPedidoCliente={pos.ultimoPedidoCliente}
+          onRepetirUltimoPedido={pos.handleRepetirUltimoPedido}
         />
 
         <CategoriasBar
@@ -112,6 +117,17 @@ export const PosView: React.FC = () => {
         <TicketPreviewModal
           datosTicket={pos.ticketParaImprimir}
           onClose={() => pos.setTicketParaImprimir(null)}
+        />
+      )}
+
+      {pos.mostrarModalWhatsApp && (
+        <WhatsAppParserModal
+          categorias={pos.categorias}
+          adicionesDisponibles={pos.adicionesDesdeBD}
+          metodosPago={pos.metodosPago}
+          bancos={pos.bancos}
+          onCerrar={() => pos.setMostrarModalWhatsApp(false)}
+          onAplicarPedidoWhatsApp={pos.handleAplicarPedidoWhatsApp}
         />
       )}
     </div>

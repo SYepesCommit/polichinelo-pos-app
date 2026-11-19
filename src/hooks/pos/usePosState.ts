@@ -3,6 +3,7 @@ import {
   Banco,
   Categoria,
   DetallePedidoInput,
+  ItemCarrito,
   MetodoPago,
   PagoInput,
   TipoPedido,
@@ -25,10 +26,11 @@ export const usePosState = () => {
   const [bancos, setBancos] = useState<Banco[]>([])
   const [bancoSeleccionado, setBancoSeleccionado] = useState<string>('')
 
-  // Modales de Especiales y Tiquete
+  // Modales de Especiales, WhatsApp y Tiquete
   const [mostrarModalNuevoEspecial, setMostrarModalNuevoEspecial] = useState(false)
   const [mostrarModalArchivados, setMostrarModalArchivados] = useState(false)
   const [mostrarModalEspeciales, setMostrarModalEspeciales] = useState(false)
+  const [mostrarModalWhatsApp, setMostrarModalWhatsApp] = useState(false)
   const [ticketParaImprimir, setTicketParaImprimir] = useState<DatosComandaCocina | null>(null)
 
   // Sub-hooks especializados
@@ -281,6 +283,102 @@ export const usePosState = () => {
     }
   }
 
+  const handleAplicarPedidoWhatsApp = (datos: {
+    tipoPedido: TipoPedido
+    nombreCliente: string
+    telefono: string
+    direccion: string
+    referencia: string
+    montoDomicilio?: number
+    metodoPagoTexto?: 'EFECTIVO' | 'TRANSFERENCIA' | null
+    bancoId?: string | null
+    items: ItemCarrito[]
+  }) => {
+    setTipoPedido(datos.tipoPedido)
+    if (datos.nombreCliente) clienteHook.setNombreCliente(datos.nombreCliente)
+    if (datos.telefono) clienteHook.setTelefono(datos.telefono)
+    if (datos.direccion) clienteHook.setDireccionCliente(datos.direccion)
+    if (datos.referencia) clienteHook.setReferenciaCliente(datos.referencia)
+    if (datos.montoDomicilio && datos.montoDomicilio > 0) {
+      clienteHook.setMontoDomicilio(datos.montoDomicilio)
+    }
+
+    if (datos.metodoPagoTexto && metodosPago.length > 0) {
+      const mpEncontrado = metodosPago.find((m) =>
+        datos.metodoPagoTexto === 'TRANSFERENCIA'
+          ? m.requiereBanco || m.codigo.toUpperCase().includes('TRANSFERENCIA')
+          : m.codigo.toUpperCase().includes('EFECTIVO')
+      )
+      if (mpEncontrado) setMetodoPagoSeleccionado(mpEncontrado)
+    }
+    if (datos.bancoId) {
+      setBancoSeleccionado(datos.bancoId)
+    }
+
+    if (datos.items.length > 0) {
+      carritoHook.setCarrito((prev) => [...prev, ...datos.items])
+    }
+  }
+
+  const handlePegarTelefonoRapido = async () => {
+    try {
+      const clip = await navigator.clipboard.readText()
+      if (!clip) return
+      const match = clip.match(/(?:\+?57\s*)?(3\d{2}[\s.\-]?\d{3}[\s.\-]?\d{4})\b/)
+      const soloDigitos = match && match[1] ? match[1].replace(/\D/g, '') : clip.replace(/\D/g, '')
+      if (soloDigitos.length >= 7) {
+        const telFinal = soloDigitos.length > 10 && soloDigitos.startsWith('57')
+          ? soloDigitos.slice(2, 12)
+          : soloDigitos.slice(0, 10)
+        setTipoPedido('DOMICILIO')
+        clienteHook.setTelefono(telFinal)
+      }
+    } catch (error) {
+      console.error('Error al pegar teléfono del portapapeles:', error)
+    }
+  }
+
+  const handleRepetirUltimoPedido = () => {
+    const ultimo = clienteHook.ultimoPedidoCliente
+    if (!ultimo || !Array.isArray(ultimo.items) || ultimo.items.length === 0) return
+
+    const todosProductos = categorias.flatMap((c) => c.productos)
+
+    const nuevosItems: ItemCarrito[] = ultimo.items.map((it, idx) => {
+      const prodCatalogo = todosProductos.find((p) => String(p.id) === String(it.productoId))
+      const extraGuardado = Math.max(0, (it.precioUnitario || 0) - (it.precioBase || 0))
+      const precioBaseActual = prodCatalogo ? prodCatalogo.precio : it.precioBase || it.precioUnitario
+      const precioFinal = precioBaseActual + extraGuardado
+
+      return {
+        idTemp: `rep-${it.productoId}-${Date.now()}-${idx}`,
+        producto: prodCatalogo
+          ? {
+              ...prodCatalogo,
+              precioBase: precioBaseActual,
+              precio: precioFinal,
+            }
+          : {
+              id: it.productoId || 'item-libre',
+              nombre: it.nombre,
+              precio: it.precioUnitario,
+              precioBase: it.precioBase || it.precioUnitario,
+            },
+        cantidad: it.cantidad,
+        observaciones: it.observaciones || '',
+      }
+    })
+
+    carritoHook.setCarrito((prev) => [...prev, ...nuevosItems])
+    if (
+      tipoPedido === 'DOMICILIO' &&
+      (!clienteHook.montoDomicilio || clienteHook.montoDomicilio === 0) &&
+      ultimo.montoDomicilio > 0
+    ) {
+      clienteHook.setMontoDomicilio(ultimo.montoDomicilio)
+    }
+  }
+
   const adicionesDesdeBD =
     categorias
       .find(
@@ -341,6 +439,8 @@ export const usePosState = () => {
     setMostrarModalArchivados,
     mostrarModalEspeciales,
     setMostrarModalEspeciales,
+    mostrarModalWhatsApp,
+    setMostrarModalWhatsApp,
     ticketParaImprimir,
     setTicketParaImprimir,
     productosActuales,
@@ -349,6 +449,9 @@ export const usePosState = () => {
     handleGuardarProductoEspecial,
     handleToggleEspecial,
     handleDesactivarEspecial,
+    handleAplicarPedidoWhatsApp,
+    handlePegarTelefonoRapido,
+    handleRepetirUltimoPedido,
     cargarBancosBD,
     recargarMenu,
     ...clienteHook,

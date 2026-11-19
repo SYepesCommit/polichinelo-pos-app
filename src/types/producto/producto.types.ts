@@ -40,6 +40,8 @@ export interface FormularioProductoDTO {
   imagenUrl?: string | null
   esEspecial?: boolean
   activo?: boolean
+  descripcion?: string | null
+  aliasWhatsApp?: string | null
   ingredientes?: string[]
 }
 

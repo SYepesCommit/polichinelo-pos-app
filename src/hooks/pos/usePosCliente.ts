@@ -1,6 +1,21 @@
 import { useState, useEffect } from 'react'
 import { TipoPedido } from '@/types/pos/pos'
 
+export interface UltimoPedidoCliente {
+  id: number
+  fechaRegistro: string | Date
+  montoDomicilio: number
+  total: number
+  items: Array<{
+    productoId: string
+    nombre: string
+    cantidad: number
+    precioUnitario: number
+    precioBase: number
+    observaciones: string
+  }>
+}
+
 export const usePosCliente = (tipoPedido: TipoPedido) => {
   const [nombreCliente, setNombreCliente] = useState('')
   const [observacionesGenerales, setObservacionesGenerales] = useState('')
@@ -9,6 +24,7 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
   const [referenciaCliente, setReferenciaCliente] = useState('')
   const [montoDomicilio, setMontoDomicilio] = useState<number>(0)
   const [clienteExiste, setClienteExiste] = useState<boolean | null>(null)
+  const [ultimoPedidoCliente, setUltimoPedidoCliente] = useState<UltimoPedidoCliente | null>(null)
 
   useEffect(() => {
     if (tipoPedido !== 'DOMICILIO') setMontoDomicilio(0)
@@ -24,15 +40,19 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
           setDireccionCliente(cliente.direccion || '')
           setReferenciaCliente(cliente.referenciaDireccion || '')
           setClienteExiste(true)
+          setUltimoPedidoCliente(cliente.ultimoPedido || null)
         } else {
           setClienteExiste(false)
+          setUltimoPedidoCliente(null)
         }
       } catch (error) {
         console.error('Error al buscar cliente:', error)
         setClienteExiste(false)
+        setUltimoPedidoCliente(null)
       }
     } else {
       setClienteExiste(null)
+      setUltimoPedidoCliente(null)
     }
   }
 
@@ -43,6 +63,7 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
     const soloDigitos = telefono.replace(/\D/g, '')
     if (soloDigitos.length < 7) {
       setClienteExiste(null)
+      setUltimoPedidoCliente(null)
       return
     }
 
@@ -88,6 +109,7 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
     setReferenciaCliente('')
     setMontoDomicilio(0)
     setClienteExiste(null)
+    setUltimoPedidoCliente(null)
   }
 
   return {
@@ -105,6 +127,7 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
     setMontoDomicilio,
     clienteExiste,
     setClienteExiste,
+    ultimoPedidoCliente,
     handleTelefonoChange,
     handleBuscarCliente,
     guardarClienteAlCobrar,

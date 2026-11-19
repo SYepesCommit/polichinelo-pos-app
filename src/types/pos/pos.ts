@@ -19,6 +19,7 @@ export interface Producto {
   id: string
   nombre: string
   descripcion?: string
+  aliasWhatsApp?: string | null
   precio: number
   precioBase: number
   activo?: boolean

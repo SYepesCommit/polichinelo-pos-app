@@ -70,6 +70,7 @@ export async function ensureDatabaseReady(): Promise<void> {
         "activo" BOOLEAN NOT NULL DEFAULT true,
         "creadoEn" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "imagenUrl" TEXT,
+        "descripcion" TEXT,
         CONSTRAINT "Producto_categoriaId_fkey" FOREIGN KEY ("categoriaId") REFERENCES "Categoria" ("id") ON DELETE SET NULL ON UPDATE CASCADE
       )`,
       `CREATE TABLE IF NOT EXISTS "Ingrediente" (
@@ -160,10 +161,18 @@ export async function ensureDatabaseReady(): Promise<void> {
       `CREATE INDEX IF NOT EXISTS "Producto_activo_idx" ON "Producto"("activo")`,
       `INSERT OR IGNORE INTO "Ingrediente" ("nombre") VALUES ('Salsa Rosada'), ('Salsa de Piña'), ('Salsa Tártara'), ('Salsa BBQ'), ('Salsa Chimichurri')`,
       `UPDATE "Producto" SET "nombre" = 'Porción de Huevitos' WHERE "nombre" = 'Porción de Huevitos (3 Huevitos)' OR "nombre" LIKE '%Huevitos (3%' OR "nombre" LIKE '%Huevos x3%' OR "nombre" LIKE '%Huevitos x3%'`,
+      `ALTER TABLE "Producto" ADD COLUMN "descripcion" TEXT`,
     ]
 
     for (const sql of ddlStatements) {
-      await rawClient.execute(sql)
+      try {
+        await rawClient.execute(sql)
+      } catch (sqlErr: any) {
+        // Ignorar si la columna ya existe en ALTER TABLE
+        if (!sqlErr?.message?.includes('duplicate column')) {
+          console.warn('Nota DDL:', sqlErr.message || sqlErr)
+        }
+      }
     }
     rawClient.close()
 

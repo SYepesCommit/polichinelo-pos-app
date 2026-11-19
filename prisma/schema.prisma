@@ -23,6 +23,7 @@ model Producto {
   costoBase      Float                 @default(0)
   esEspecial     Boolean               @default(false)
   activo         Boolean               @default(true)
+  descripcion    String?
   ingredientes   ProductoIngrediente[]
   pedidoDetalles PedidoDetalle[]
   creadoEn       DateTime              @default(now())

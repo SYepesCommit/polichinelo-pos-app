@@ -16,6 +16,7 @@ import {
   Coins,
   X,
   Split,
+  Copy,
 } from 'lucide-react'
 
 import { ComandaItemCard } from './ComandaItemCard'
@@ -23,6 +24,7 @@ import { BancoModal } from './BancoModal'
 import { ItemLibreModal } from './ItemLibreModal'
 import { ComandaPanelProps } from '@/types/pos/comandaPanel.types'
 import { useComandaPanel } from '@/hooks/pos/useComandaPanel'
+import { generarTextoResumenDesdeCarrito } from '@/utils/whatsappPos.utils'
 
 export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
   const {
@@ -86,44 +88,88 @@ export const ComandaPanel: React.FC<ComandaPanelProps> = (props) => {
   }
 
   const bancoActual = bancos.find((b) => b.id === bancoSeleccionado)
+  const [copiadoWA, setCopiadoWA] = React.useState(false)
+
+  const handleCopiarResumenWA = async () => {
+    if (carrito.length === 0) return
+    try {
+      const textoWA = generarTextoResumenDesdeCarrito({
+        carrito,
+        tipoPedido,
+        nombreCliente: props.nombreCliente || '',
+        telefono: props.telefono || '',
+        direccion: props.direccionCliente || '',
+        referencia: props.referenciaCliente || '',
+        montoDomicilio: montoDomicilio || 0,
+        total,
+        metodoPago: esPagoMixto ? ({ nombre: 'MIXTO', requiereBanco: true } as any) : metodoPagoSeleccionado,
+        bancoNombre: bancoActual?.nombre,
+      })
+      await navigator.clipboard.writeText(textoWA)
+      setCopiadoWA(true)
+      setTimeout(() => setCopiadoWA(false), 2200)
+    } catch (e) {
+      console.error('Error copiando resumen para WhatsApp:', e)
+    }
+  }
 
   return (
     <>
       <div className="w-96 bg-slate-900/90 border-l border-slate-800 flex flex-col justify-between h-full p-6 shrink-0 overflow-hidden select-none">
         {/* SECCIÓN SUPERIOR E ÍTEMS DE CARRITO */}
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-5 h-5 text-amber-400 shrink-0" />
-              <h2 className="text-lg font-extrabold text-slate-100">Comanda</h2>
-            </div>
+          <div className="border-b border-slate-800 pb-3 mb-3 shrink-0 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-amber-400 shrink-0" />
+                <h2 className="text-lg font-extrabold text-slate-100">Comanda</h2>
+              </div>
 
-            <div className="flex items-center gap-1.5">
-              {carrito.length > 0 && onVaciarCarrito && (
+              <div className="flex items-center gap-1.5">
+                {carrito.length > 0 && onVaciarCarrito && (
+                  <button
+                    type="button"
+                    onClick={handleVaciarClick}
+                    title="Vaciar toda la comanda"
+                    className={`text-xs px-2.5 py-1.5 rounded-xl border font-bold flex items-center gap-1 transition touch-manipulation active:scale-95 ${
+                      confirmandoVaciar
+                        ? 'bg-red-500 text-slate-950 border-red-400 font-black shadow-md shadow-red-500/20'
+                        : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/30'
+                    }`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{confirmandoVaciar ? '¿Vaciar? Sí' : 'Vaciar'}</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={handleVaciarClick}
-                  title="Vaciar toda la comanda"
-                  className={`text-xs px-2.5 py-1.5 rounded-xl border font-bold flex items-center gap-1 transition touch-manipulation active:scale-95 ${
-                    confirmandoVaciar
-                      ? 'bg-red-500 text-slate-950 border-red-400 font-black shadow-md shadow-red-500/20'
-                      : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/30'
+                  onClick={() => setMostrarModalItemLibre(true)}
+                  className="text-xs bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-xl border border-amber-500/30 font-bold flex items-center gap-1 transition touch-manipulation active:scale-95"
+                >
+                  <PlusCircle className="w-3.5 h-3.5" />
+                  <span>+ Libre</span>
+                </button>
+              </div>
+            </div>
+
+            {carrito.length > 0 && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleCopiarResumenWA}
+                  title="Copiar resumen del pedido para pegar en WhatsApp"
+                  className={`w-1/2 text-xs py-1.5 px-3 rounded-xl border font-bold flex items-center justify-center gap-1.5 transition touch-manipulation active:scale-95 ${
+                    copiadoWA
+                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-black'
+                      : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/30'
                   }`}
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{confirmandoVaciar ? '¿Vaciar? Sí' : 'Vaciar'}</span>
+                  {copiadoWA ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiadoWA ? '¡Copiado!' : 'Copiar WhatsApp'}</span>
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setMostrarModalItemLibre(true)}
-                className="text-xs bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 px-2.5 py-1.5 rounded-xl border border-amber-500/30 font-bold flex items-center gap-1 transition touch-manipulation active:scale-95"
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>+ Libre</span>
-              </button>
-            </div>
+              </div>
+            )}
           </div>
 
           {carrito.length === 0 ? (

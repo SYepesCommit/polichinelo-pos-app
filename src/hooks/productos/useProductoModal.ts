@@ -15,6 +15,7 @@ export const useProductoModal = ({
   const [imagenUrl, setImagenUrl] = useState('')
   const [esEspecial, setEsEspecial] = useState(false)
   const [activo, setActivo] = useState(true)
+  const [aliasWhatsApp, setAliasWhatsApp] = useState('')
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
@@ -50,6 +51,7 @@ export const useProductoModal = ({
       setImagenUrl(productoEditar.imagenUrl || '')
       setEsEspecial(productoEditar.esEspecial || false)
       setActivo(productoEditar.activo ?? true)
+      setAliasWhatsApp(productoEditar.descripcion || '')
     } else {
       setNombre('')
       setIngredientes([])
@@ -59,6 +61,7 @@ export const useProductoModal = ({
       setImagenUrl('')
       setEsEspecial(false)
       setActivo(true)
+      setAliasWhatsApp('')
     }
   }, [productoEditar, categorias])
 
@@ -112,6 +115,7 @@ export const useProductoModal = ({
         imagenUrl: imagenUrl.trim() || null,
         esEspecial,
         activo,
+        descripcion: aliasWhatsApp.trim() || null,
       })
       onClose()
     } catch (error) {
@@ -146,6 +150,8 @@ export const useProductoModal = ({
     setEsEspecial,
     activo,
     setActivo,
+    aliasWhatsApp,
+    setAliasWhatsApp,
     guardando,
     pv,
     cb,

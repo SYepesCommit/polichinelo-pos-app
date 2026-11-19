@@ -37,7 +37,6 @@ export const NoteModal: React.FC<NoteModalProps> = ({
 
   const tieneTodasLasSalsas = OPCIONES_SALSAS.every((s) => salsasSeleccionadas.includes(s))
   const esSinSalsas = salsasSeleccionadas.includes('SIN SALSAS')
-  const faltaElegirCarne = requiereCarne && !carneSeleccionada.trim()
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 select-none">
@@ -57,24 +56,31 @@ export const NoteModal: React.FC<NoteModalProps> = ({
         </h3>
         <p className="text-xs text-slate-400 mb-4 font-medium leading-relaxed">
           {requiereCarne
-            ? 'Elige el tipo de carne, las salsas, ingredientes o adiciones.'
+            ? 'Elige las salsas, ingredientes, adiciones o cambia el tipo de carne si lo deseas.'
             : 'Elige las salsas, qué ingredientes quitar, adiciones u observación.'}
         </p>
 
-        {/* 1. SELECCIÓN DE CARNE (POLLO, TOCINETA, CHURRASCO) */}
+        {/* 1. SELECCIÓN DE CARNE OPCIONAL (POLLO, TOCINETA, CHURRASCO) */}
         {requiereCarne && (
           <div className="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-            <label className="text-[11px] font-black text-amber-400 uppercase tracking-wider flex items-center justify-between mb-2.5">
+            <label className="text-[11px] font-black text-amber-400 uppercase tracking-wider flex items-center justify-between mb-1">
               <span className="flex items-center gap-1.5">
                 <Beef className="w-4 h-4 text-amber-400" />
-                <span>Elegir Tipo de Carne (Obligatorio) *</span>
+                <span>Tipo / Cambio de Carne (Opcional)</span>
               </span>
-              {carneSeleccionada && (
+              {carneSeleccionada ? (
                 <span className="text-[10px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full font-black">
                   {carneSeleccionada}
                 </span>
+              ) : (
+                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold normal-case">
+                  Carne normal
+                </span>
               )}
             </label>
+            <p className="text-[11px] text-slate-400 font-medium mb-2.5">
+              * Si no se elige ninguna, se da por hecho que va con la carne normal del plato.
+            </p>
             <div className="grid grid-cols-3 gap-2">
               {OPCIONES_CARNE.map((carne) => {
                 const activa = carneSeleccionada === carne
@@ -82,8 +88,8 @@ export const NoteModal: React.FC<NoteModalProps> = ({
                   <button
                     key={carne}
                     type="button"
-                    onClick={() => setCarneSeleccionada(carne)}
-                    className={`py-3 px-2 rounded-xl border text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5 touch-manipulation active:scale-95 ${
+                    onClick={() => setCarneSeleccionada(activa ? '' : carne)}
+                    className={`py-2.5 px-2 rounded-xl border text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5 touch-manipulation active:scale-95 ${
                       activa
                         ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20'
                         : 'bg-slate-950 border-slate-800 text-slate-200 hover:border-amber-500/50'
@@ -290,13 +296,10 @@ export const NoteModal: React.FC<NoteModalProps> = ({
           </button>
           <button
             type="button"
-            disabled={faltaElegirCarne}
             onClick={handleGuardar}
-            className="flex-1 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-black text-xs transition shadow-lg touch-manipulation active:scale-95"
+            className="flex-1 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs transition shadow-lg touch-manipulation active:scale-95"
           >
-            {faltaElegirCarne
-              ? 'Elige la carne arriba *'
-              : esNuevoItem
+            {esNuevoItem
               ? `Agregar a la comanda ($${precioFinalUnitario.toLocaleString('es-CO')})`
               : `Guardar cambios ($${precioFinalUnitario.toLocaleString('es-CO')})`}
           </button>

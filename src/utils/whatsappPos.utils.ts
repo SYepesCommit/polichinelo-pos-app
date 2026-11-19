@@ -343,12 +343,14 @@ export function analizarMensajeWhatsApp(
   const extraerAdiciones = (txtNorm: string) => {
     let extraPrecio = 0
     const nombresAdicion: string[] = []
-    if (
-      /\b(adicion|adicional|extra|mas|agrega(?:le|rle|les)?|ponle[s]?|echale[s]?)\b|\+/i.test(
-        txtNorm
-      ) ||
-      /^(?:una?|uno|1)?\s*con\s+/i.test(txtNorm)
-    ) {
+    const matchInicioAdicion = txtNorm.match(
+      /\b(adicion|adicional|extra|mas|agrega(?:le|rle|les)?|ponle[s]?|echale[s]?)\b|\+|^(?:una?|uno|1)?\s*con\s+/i
+    )
+    if (matchInicioAdicion && matchInicioAdicion.index !== undefined) {
+      // Tomar únicamente desde donde empieza la frase de adición y excluir cualquier cláusula "sin ..."
+      const zonaAdicion = txtNorm
+        .slice(matchInicioAdicion.index)
+        .replace(/\b(?:sin|nada de|no le eche[n]?|qu[ií]ta(?:le|rle|les|nle)?)\s+[a-z]+(?:\s+(?:ni|y|,)?\s*[a-z]+){0,3}/gi, '')
       for (const ad of adicionesDisponibles) {
         const nombreBase = ad.nombre
           .replace(/^porci[oó]n\s+de\s+/i, '')
@@ -356,7 +358,10 @@ export function analizarMensajeWhatsApp(
           .trim()
         const adNorm = normalizarTextoWA(nombreBase)
         const tokenAd = singularizarPalabra(adNorm)
-        if (adNorm && (txtNorm.includes(adNorm) || (tokenAd.length >= 4 && txtNorm.includes(tokenAd)))) {
+        if (
+          adNorm &&
+          (zonaAdicion.includes(adNorm) || (tokenAd.length >= 4 && zonaAdicion.includes(tokenAd)))
+        ) {
           extraPrecio += ad.precio
           nombresAdicion.push(`${nombreBase} (+$${ad.precio.toLocaleString('es-CO')})`)
         }

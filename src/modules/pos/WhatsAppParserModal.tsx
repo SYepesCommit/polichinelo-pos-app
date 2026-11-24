@@ -17,13 +17,21 @@ import {
   CreditCard,
   Truck,
   RotateCcw,
+  Settings2,
+  Eraser,
 } from 'lucide-react'
 import { Banco, Categoria, ItemCarrito, MetodoPago, TipoPedido } from '@/types/pos/pos'
 import { UltimoPedidoCliente } from '@/hooks/pos/usePosCliente'
 import {
   analizarMensajeWhatsApp,
   ItemDetectadoWhatsApp,
-  PLANTILLA_WHATSAPP_CLIENTE,
+  limpiarTelefonoColombiano,
+  getPlantillaSaludoWA,
+  setPlantillaSaludoWA,
+  resetPlantillaSaludoWA,
+  getPlantillaResumenWA,
+  setPlantillaResumenWA,
+  resetPlantillaResumenWA,
 } from '@/utils/whatsappPos.utils'
 
 interface WhatsAppParserModalProps {
@@ -45,6 +53,18 @@ interface WhatsAppParserModalProps {
   }) => void
 }
 
+const VARIABLES_PLANTILLA_RESUMEN = [
+  { tag: '{cliente}', label: 'Cliente' },
+  { tag: '{telefono}', label: 'Teléfono' },
+  { tag: '{tipo_pedido}', label: 'Modalidad' },
+  { tag: '{direccion}', label: 'Dirección' },
+  { tag: '{productos}', label: 'Lista Productos' },
+  { tag: '{domicilio}', label: 'Domicilio' },
+  { tag: '{total}', label: 'Total $' },
+  { tag: '{medio_pago}', label: 'Medio Pago' },
+  { tag: '{consecutivo}', label: '# Pedido' },
+]
+
 export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
   categorias,
   adicionesDisponibles,
@@ -54,6 +74,12 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
 }) => {
   const [texto, setTexto] = useState('')
   const [plantillaCopiada, setPlantillaCopiada] = useState(false)
+  const [editandoPlantillas, setEditandoPlantillas] = useState(false)
+  const [tabPlantilla, setTabPlantilla] = useState<'SALUDO' | 'RESUMEN'>('SALUDO')
+  const [plantillaSaludo, setPlantillaSaludoState] = useState(() => getPlantillaSaludoWA())
+  const [plantillaResumen, setPlantillaResumenState] = useState(() => getPlantillaResumenWA())
+  const [plantillaGuardadaOk, setPlantillaGuardadaOk] = useState(false)
+
   const [clienteBD, setClienteBD] = useState<{
     nombre: string
     direccion: string
@@ -76,7 +102,7 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
   useEffect(() => {
     const res = analizarMensajeWhatsApp(texto, categorias, adicionesDisponibles, bancos)
     setTipoPedido(res.tipoPedido)
-    setTelefono(res.telefono)
+    setTelefono(limpiarTelefonoColombiano(res.telefono))
     setNombreCliente(res.nombreCliente)
     setDireccion(res.direccion)
     setReferencia(res.referencia)
@@ -88,7 +114,7 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
 
   // Si se detecta un teléfono de 7+ dígitos, buscar automáticamente en la base de datos de clientes
   useEffect(() => {
-    const telLimpio = telefono.replace(/\D/g, '')
+    const telLimpio = limpiarTelefonoColombiano(telefono)
     if (telLimpio.length < 7 || !window.electronAPI?.getClienteByTelefono) {
       setClienteBD(null)
       return
@@ -117,10 +143,12 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
     }
   }, [telefono])
 
+  // Pegar o sumar un nuevo mensaje del portapapeles (ideal cuando el cliente manda varios mensajes sueltos)
   const handlePegarPortapapeles = async () => {
     try {
       const clip = await navigator.clipboard.readText()
-      if (clip) setTexto(clip)
+      if (!clip || !clip.trim()) return
+      setTexto((prev) => (prev.trim() ? `${prev.trim()}\n${clip.trim()}` : clip.trim()))
     } catch (error) {
       console.error('No se pudo leer el portapapeles:', error)
     }
@@ -128,12 +156,33 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
 
   const handleCopiarPlantilla = async () => {
     try {
-      await navigator.clipboard.writeText(PLANTILLA_WHATSAPP_CLIENTE)
+      await navigator.clipboard.writeText(plantillaSaludo)
       setPlantillaCopiada(true)
       setTimeout(() => setPlantillaCopiada(false), 2500)
     } catch (error) {
       console.error('Error copiando plantilla:', error)
     }
+  }
+
+  const handleGuardarPlantillas = () => {
+    setPlantillaSaludoWA(plantillaSaludo)
+    setPlantillaResumenWA(plantillaResumen)
+    setPlantillaGuardadaOk(true)
+    setTimeout(() => setPlantillaGuardadaOk(false), 2000)
+  }
+
+  const handleRestaurarPlantillaActual = () => {
+    if (tabPlantilla === 'SALUDO') {
+      const def = resetPlantillaSaludoWA()
+      setPlantillaSaludoState(def)
+    } else {
+      const def = resetPlantillaResumenWA()
+      setPlantillaResumenState(def)
+    }
+  }
+
+  const insertarVariableEnResumen = (tag: string) => {
+    setPlantillaResumenState((prev) => `${prev}${prev.endsWith('\n') || !prev ? '' : ' '}${tag}`)
   }
 
   const cambiarCantidadItem = (idTemp: string, delta: number) => {
@@ -218,7 +267,7 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
     onAplicarPedidoWhatsApp({
       tipoPedido,
       nombreCliente: nombreCliente.trim(),
-      telefono: telefono.trim(),
+      telefono: limpiarTelefonoColombiano(telefono),
       direccion: direccion.trim(),
       referencia: referencia.trim(),
       montoDomicilio: montoDomicilio > 0 ? montoDomicilio : undefined,
@@ -244,6 +293,7 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
     Boolean(nombreCliente.trim()) ||
     Boolean(telefono.trim()) ||
     Boolean(direccion.trim()) ||
+    Boolean(referencia.trim()) ||
     itemsDetectados.length > 0
 
   return (
@@ -268,63 +318,189 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
                 Armar Pedido desde WhatsApp
               </h3>
               <p className="text-xs text-slate-400 font-semibold">
-                Pega el mensaje del cliente y el sistema detectará teléfono, dirección, productos y medio de pago.
+                Pega uno o varios mensajes sueltos del cliente para detectar dirección, teléfono y productos.
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleCopiarPlantilla}
-            className={`px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition active:scale-95 shrink-0 ${
-              plantillaCopiada
-                ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-800'
-            }`}
-            title="Copia una plantilla para enviársela al cliente por WhatsApp"
-          >
-            {plantillaCopiada ? (
-              <>
-                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>¡Plantilla Copiada!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Copiar Plantilla para Cliente</span>
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setEditandoPlantillas((prev) => !prev)}
+              className={`px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition active:scale-95 ${
+                editandoPlantillas
+                  ? 'bg-amber-500 text-slate-950 border-amber-400'
+                  : 'bg-slate-950 hover:bg-slate-800 text-amber-400 border-slate-800'
+              }`}
+              title="Editar plantilla de bienvenida y plantilla de confirmación de pedido"
+            >
+              <Settings2 className="w-3.5 h-3.5" />
+              <span>{editandoPlantillas ? 'Cerrar Plantillas' : 'Editar Plantillas'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCopiarPlantilla}
+              className={`px-3 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition active:scale-95 ${
+                plantillaCopiada
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                  : 'bg-slate-950 hover:bg-slate-800 text-slate-300 border-slate-800'
+              }`}
+              title="Copia la plantilla inicial para pedirle los datos al cliente por WhatsApp"
+            >
+              {plantillaCopiada ? (
+                <>
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>¡Plantilla Copiada!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Copiar Plantilla Inicial</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* PANEL DESPLEGABLE PARA EDITAR AMBAS PLANTILLAS (INICIAL Y PEDIDO FINAL) */}
+        {editandoPlantillas && (
+          <div className="mt-3 p-4 rounded-2xl bg-slate-950 border border-amber-500/30 space-y-3 shrink-0 animate-in fade-in duration-150">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setTabPlantilla('SALUDO')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                    tabPlantilla === 'SALUDO'
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  }`}
+                >
+                  1. Plantilla Primer Mensaje (Pedir Datos)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTabPlantilla('RESUMEN')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition ${
+                    tabPlantilla === 'RESUMEN'
+                      ? 'bg-amber-500 text-slate-950'
+                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  }`}
+                >
+                  2. Plantilla Pedido Final (Confirmación)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRestaurarPlantillaActual}
+                  className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-800 text-[11px] font-bold flex items-center gap-1 transition active:scale-95"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Restaurar original</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGuardarPlantillas}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition active:scale-95 ${
+                    plantillaGuardadaOk
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
+                  }`}
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>{plantillaGuardadaOk ? '¡Guardado!' : 'Guardar Plantillas'}</span>
+                </button>
+              </div>
+            </div>
+
+            {tabPlantilla === 'SALUDO' ? (
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Este es el mensaje que se copia al presionar <b>&quot;Copiar Plantilla Inicial&quot;</b> para pedirle los datos al cliente:
+                </p>
+                <textarea
+                  rows={5}
+                  value={plantillaSaludo}
+                  onChange={(e) => setPlantillaSaludoState(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl p-3 text-xs font-medium text-slate-100 focus:outline-none resize-none leading-relaxed"
+                />
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between flex-wrap gap-1.5">
+                  <p className="text-[11px] text-slate-400 font-medium">
+                    Este es el formato del resumen final al presionar <b>&quot;Copiar WhatsApp&quot;</b> en la comanda o en el ticket. Toca una etiqueta para insertarla:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {VARIABLES_PLANTILLA_RESUMEN.map((v) => (
+                      <button
+                        key={v.tag}
+                        type="button"
+                        onClick={() => insertarVariableEnResumen(v.tag)}
+                        className="px-2 py-0.5 rounded-lg bg-slate-900 hover:bg-amber-500/20 border border-slate-800 hover:border-amber-500/40 text-amber-300 text-[10px] font-bold transition active:scale-95"
+                        title={`Insertar ${v.tag}`}
+                      >
+                        + {v.tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <textarea
+                  rows={6}
+                  value={plantillaResumen}
+                  onChange={(e) => setPlantillaResumenState(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 rounded-xl p-3 text-xs font-medium text-slate-100 focus:outline-none resize-none leading-relaxed"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* CUERPO EN 2 COLUMNAS */}
         <div className="flex-1 overflow-y-auto py-4 grid grid-cols-1 lg:grid-cols-2 gap-5 min-h-0 custom-scrollbar">
           {/* COLUMNA IZQUIERDA: TEXTO DE WHATSAPP */}
           <div className="flex flex-col space-y-2.5">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <label className="text-xs font-black text-slate-300 uppercase tracking-wider">
-                1. Mensaje de WhatsApp
+                1. Mensajes del Cliente
               </label>
-              <button
-                type="button"
-                onClick={handlePegarPortapapeles}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-extrabold flex items-center gap-1.5 transition active:scale-95"
-              >
-                <ClipboardPaste className="w-3.5 h-3.5" />
-                <span>Pegar del Portapapeles</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                {texto.trim().length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTexto('')}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-950 hover:bg-rose-500/15 text-slate-400 hover:text-rose-300 border border-slate-800 hover:border-rose-500/30 text-xs font-bold flex items-center gap-1 transition active:scale-95"
+                    title="Limpiar caja de texto"
+                  >
+                    <Eraser className="w-3.5 h-3.5" />
+                    <span>Limpiar</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handlePegarPortapapeles}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-extrabold flex items-center gap-1.5 transition active:scale-95"
+                  title="Pega el mensaje copiado (si ya hay texto, lo suma debajo para unir varios mensajes)"
+                >
+                  <ClipboardPaste className="w-3.5 h-3.5" />
+                  <span>{texto.trim() ? '+ Sumar Mensaje Copiado' : 'Pegar del Portapapeles'}</span>
+                </button>
+              </div>
             </div>
 
             <textarea
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              placeholder={`Pega aquí el chat o mensaje del cliente...\n\nEjemplo:\nJuan Pérez\n3001234567\nCalle 15 # 8-20 Barrio Centro\n2 Hamburguesas Polichinelo sin cebolla\n1 Coca-Cola 1.5L\nPago por Nequi`}
+              placeholder={`Pega aquí uno o varios mensajes del cliente...\n\nEjemplo (incluso si manda todo en mensajes separados o mal escrito):\n2 hamburgesas de tocineta una sin ensalada\nkarrera 15 nro 9-34 barrio san jose\nStiven 312 440 9988 nequi`}
               className="flex-1 min-h-[240px] w-full bg-slate-950 border border-slate-800 focus:border-emerald-500 rounded-2xl p-3.5 text-xs font-medium text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none leading-relaxed"
               autoFocus
             />
 
-            <p className="text-[11px] text-slate-500 font-medium">
-              Tip: Si el teléfono ya está registrado en Polichinelo, el sistema completará el nombre y dirección guardados automáticamente.
+            <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+              Tip: Si el cliente envía los platos en un mensaje y la dirección en otro, usa <b>&quot;+ Sumar Mensaje Copiado&quot;</b> para ir acumulándolos sin borrar lo anterior.
             </p>
           </div>
 
@@ -379,8 +555,8 @@ export const WhatsAppParserModal: React.FC<WhatsAppParserModalProps> = ({
                 <input
                   type="text"
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  placeholder="Teléfono"
+                  onChange={(e) => setTelefono(limpiarTelefonoColombiano(e.target.value))}
+                  placeholder="Teléfono (sin espacios)"
                   className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-xl pl-8 pr-2.5 py-1.5 text-xs font-bold text-slate-100 outline-none"
                 />
               </div>

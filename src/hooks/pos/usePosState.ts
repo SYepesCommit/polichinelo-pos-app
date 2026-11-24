@@ -296,7 +296,10 @@ export const usePosState = () => {
   }) => {
     setTipoPedido(datos.tipoPedido)
     if (datos.nombreCliente) clienteHook.setNombreCliente(datos.nombreCliente)
-    if (datos.telefono) clienteHook.setTelefono(datos.telefono)
+    if (datos.telefono) {
+      const telLimpio = datos.telefono.replace(/\D/g, '').replace(/^57(?=\d{10})/, '').slice(0, 10)
+      clienteHook.setTelefono(telLimpio)
+    }
     if (datos.direccion) clienteHook.setDireccionCliente(datos.direccion)
     if (datos.referencia) clienteHook.setReferenciaCliente(datos.referencia)
     if (datos.montoDomicilio && datos.montoDomicilio > 0) {
@@ -324,12 +327,13 @@ export const usePosState = () => {
     try {
       const clip = await navigator.clipboard.readText()
       if (!clip) return
-      const match = clip.match(/(?:\+?57\s*)?(3\d{2}[\s.\-]?\d{3}[\s.\-]?\d{4})\b/)
+      const match = clip.match(/(?:\+?57[\s.\-]*)?(3\d{2}[\s.\-]?\d{3}[\s.\-]?\d{4})\b/)
       const soloDigitos = match && match[1] ? match[1].replace(/\D/g, '') : clip.replace(/\D/g, '')
       if (soloDigitos.length >= 7) {
-        const telFinal = soloDigitos.length > 10 && soloDigitos.startsWith('57')
-          ? soloDigitos.slice(2, 12)
-          : soloDigitos.slice(0, 10)
+        const telFinal =
+          soloDigitos.length > 10 && soloDigitos.startsWith('57')
+            ? soloDigitos.slice(2, 12)
+            : soloDigitos.slice(0, 10)
         setTipoPedido('DOMICILIO')
         clienteHook.setTelefono(telFinal)
       }

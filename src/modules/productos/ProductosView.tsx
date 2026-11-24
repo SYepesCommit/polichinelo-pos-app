@@ -128,7 +128,7 @@ export const ProductosView: React.FC = () => {
         />
       )}
 
-      {/* DIÁLOGO CONFIRMACIÓN ELIMINACIÓN */}
+      {/* DIÁLOGO CONFIRMACIÓN ELIMINACIÓN DEFINITIVA */}
       {productoAEliminar && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl relative">
@@ -136,11 +136,25 @@ export const ProductosView: React.FC = () => {
               <AlertTriangle className="w-6 h-6" />
             </div>
             <h3 className="text-base font-extrabold text-slate-100 mb-1">
-              ¿Eliminar "{productoAEliminar.nombre}"?
+              ¿Eliminar definitivamente &quot;{productoAEliminar.nombre}&quot;?
             </h3>
-            <p className="text-xs text-slate-400 mb-6 font-medium leading-relaxed">
-              Si el producto tiene ventas en el historial, se desactivará del menú para no alterar los reportes de ventas ni los cierres pasados.
+            <p className="text-xs text-slate-400 mb-4 font-medium leading-relaxed">
+              Este producto se borrará por completo de tu catálogo. Las ventas pasadas conservarán su nombre y valor en el historial contable.
             </p>
+
+            {productoAEliminar.activo && (
+              <button
+                type="button"
+                onClick={() => {
+                  handleToggleActivo(productoAEliminar)
+                  setProductoAEliminar(null)
+                }}
+                className="w-full mb-2.5 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 rounded-xl text-xs font-extrabold transition active:scale-95"
+              >
+                Solo Desactivar (ocultar de caja sin borrar)
+              </button>
+            )}
+
             <div className="flex gap-2">
               <button
                 type="button"

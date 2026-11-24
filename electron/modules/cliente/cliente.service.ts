@@ -1,26 +1,45 @@
 import { prisma } from '../../config/database'
 
+function normalizarTelBD(raw: string): string {
+  if (!raw) return ''
+  let digitos = String(raw).replace(/\D/g, '')
+  if (digitos.length > 10 && digitos.startsWith('57')) {
+    digitos = digitos.slice(2)
+  }
+  return digitos.slice(0, 10)
+}
+
 export const clienteService = {
   async crearOActualizar(clienteData: any) {
+    const telLimpio = normalizarTelBD(clienteData.telefono) || String(clienteData.telefono || '').trim()
     return await prisma.cliente.upsert({
-      where: { telefono: clienteData.telefono },
+      where: { telefono: telLimpio },
       update: {
         nombre: clienteData.nombre,
         direccion: clienteData.direccion,
         referenciaDireccion: clienteData.referenciaDireccion,
       },
-      create: clienteData,
+      create: {
+        ...clienteData,
+        telefono: telLimpio,
+      },
     })
   },
 
   // Buscar cliente por número de teléfono (incluyendo su último pedido activo para "Repetir pedido")
   async buscarPorTelefono(telefono: string) {
     try {
-      const telLimpio = telefono.trim()
-      if (!telLimpio) return null
+      const telOriginal = String(telefono || '').trim()
+      const telLimpio = normalizarTelBD(telOriginal)
+      if (!telLimpio && !telOriginal) return null
 
-      const cliente = await prisma.cliente.findUnique({
-        where: { telefono: telLimpio },
+      const cliente = await prisma.cliente.findFirst({
+        where: {
+          OR: [
+            ...(telLimpio ? [{ telefono: telLimpio }] : []),
+            ...(telOriginal ? [{ telefono: telOriginal }] : []),
+          ],
+        },
         include: {
           pedidos: {
             where: {
@@ -99,7 +118,7 @@ export const clienteService = {
     referenciaDireccion?: string
   }) {
     try {
-      const telLimpio = data.telefono.trim()
+      const telLimpio = normalizarTelBD(data.telefono) || data.telefono.trim()
       if (!telLimpio) return null
 
       return await prisma.cliente.upsert({

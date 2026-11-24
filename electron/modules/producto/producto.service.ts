@@ -180,21 +180,7 @@ export const productoService = {
 
   async eliminarProductoDefinitivo(productoId: string | number) {
     try {
-      const idNum = Number(productoId)
-
-      const ventasAsociadas = await prisma.pedidoDetalle.count({
-        where: { productoId: idNum },
-      })
-
-      if (ventasAsociadas > 0) {
-        throw new Error(
-          `No se puede eliminar definitivamente porque el plato tiene ${ventasAsociadas} venta(s) registrada(s) en historial.`
-        )
-      }
-
-      return await prisma.producto.delete({
-        where: { id: idNum },
-      })
+      return await this.deleteProducto(Number(productoId))
     } catch (error) {
       console.error('Error al eliminar definitivamente producto:', error)
       throw error
@@ -412,54 +398,54 @@ export const productoService = {
       const idNum = Number(id)
       const producto = await prisma.producto.findUnique({
         where: { id: idNum },
-        include: {
-          _count: {
-            select: { pedidoDetalles: true },
-          },
-        },
       })
 
       if (!producto) {
         throw new Error('El producto no existe.')
       }
 
-      // Si el producto ya tiene ventas históricas asociadas (> 0 pedidos en historial)
-      if (producto._count.pedidoDetalles > 0) {
-        const desactivado = await prisma.producto.update({
-          where: { id: idNum },
-          data: { activo: false },
-          include: {
-            categoria: true,
-            ingredientes: {
-              include: {
-                ingrediente: true,
-              },
-            },
-          },
-        })
-        return {
-          ...desactivado,
-          desactivadoLogico: true,
-          mensaje:
-            'El producto tiene pedidos históricos registrados. Se retiró del menú para proteger el historial contable.',
-        }
-      }
-
-      // Si no tiene ventas (0 pedidos asociados), se borra definitivamente
-      await prisma.productoIngrediente.deleteMany({
+      // Si el producto tenía ventas históricas en PedidoDetalle, conservamos su nombre en observaciones
+      // como "[LIBRE: Nombre]" y desvinculamos productoId (null) para poder eliminarlo definitivamente
+      // del catálogo sin alterar ningún monto ni detalle de los reportes pasados.
+      const detallesHistoricos = await prisma.pedidoDetalle.findMany({
         where: { productoId: idNum },
+        select: { id: true, observaciones: true },
+      })
+
+      await prisma.$transaction(async (tx) => {
+        for (const det of detallesHistoricos) {
+          const obsActual = (det.observaciones || '').trim()
+          const yaTienePrefijoLibre = /^\[LIBRE:\s*[^\]]+\]/i.test(obsActual)
+          const nuevaObs = yaTienePrefijoLibre
+            ? obsActual
+            : obsActual
+              ? `[LIBRE: ${producto.nombre}] | ${obsActual}`
+              : `[LIBRE: ${producto.nombre}]`
+
+          await tx.pedidoDetalle.update({
+            where: { id: det.id },
+            data: {
+              productoId: null,
+              observaciones: nuevaObs,
+            },
+          })
+        }
+
+        await tx.productoIngrediente.deleteMany({
+          where: { productoId: idNum },
+        })
+
+        await tx.producto.delete({
+          where: { id: idNum },
+        })
       })
 
       if (producto.imagenUrl) {
         this.limpiarArchivoImagenLocal(producto.imagenUrl)
       }
 
-      const eliminado = await prisma.producto.delete({
-        where: { id: idNum },
-      })
-
       return {
-        ...eliminado,
+        ...producto,
         desactivadoLogico: false,
       }
     } catch (error) {

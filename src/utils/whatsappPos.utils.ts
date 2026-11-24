@@ -23,12 +23,103 @@ export interface ResultadoAnalisisWhatsApp {
   items: ItemDetectadoWhatsApp[]
 }
 
-export const PLANTILLA_WHATSAPP_CLIENTE = `¡Hola! 👋 Para tomar tu pedido en *Polichinelo* más rápido, regálanos estos datos:
+export const PLANTILLA_WHATSAPP_CLIENTE_DEFAULT = `¡Hola! 👋 Para tomar tu pedido en *Polichinelo* más rápido, regálanos estos datos:
 • *Nombre:* 
 • *Teléfono:* 
 • *Dirección y Barrio:* 
 • *Pedido:* 
 • *Medio de pago (Efectivo / Nequi / Bancolombia):* `
+
+export const PLANTILLA_WHATSAPP_CLIENTE = PLANTILLA_WHATSAPP_CLIENTE_DEFAULT
+
+export const PLANTILLA_RESUMEN_PEDIDO_DEFAULT = `*POLICHINELO - Confirmación de Pedido* 🍔
+Modalidad: *{tipo_pedido}*
+Cliente: {cliente}
+Teléfono: {telefono}
+Dirección: {direccion}
+
+*Detalle del pedido:*
+{productos}
+{domicilio}
+
+*TOTAL A PAGAR: \${total}*
+Medio de pago: {medio_pago}
+¡Muchas gracias por tu pedido! ✨`
+
+const STORAGE_KEY_PLANTILLA_SALUDO = 'polichinelo_wa_plantilla_saludo_v1'
+const STORAGE_KEY_PLANTILLA_RESUMEN = 'polichinelo_wa_plantilla_resumen_v1'
+
+export function getPlantillaSaludoWA(): string {
+  try {
+    const guardada = localStorage.getItem(STORAGE_KEY_PLANTILLA_SALUDO)
+    return guardada && guardada.trim() ? guardada : PLANTILLA_WHATSAPP_CLIENTE_DEFAULT
+  } catch {
+    return PLANTILLA_WHATSAPP_CLIENTE_DEFAULT
+  }
+}
+
+export function setPlantillaSaludoWA(texto: string): void {
+  try {
+    if (!texto.trim()) {
+      localStorage.removeItem(STORAGE_KEY_PLANTILLA_SALUDO)
+    } else {
+      localStorage.setItem(STORAGE_KEY_PLANTILLA_SALUDO, texto)
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function resetPlantillaSaludoWA(): string {
+  try {
+    localStorage.removeItem(STORAGE_KEY_PLANTILLA_SALUDO)
+  } catch {
+    // ignore
+  }
+  return PLANTILLA_WHATSAPP_CLIENTE_DEFAULT
+}
+
+export function getPlantillaResumenWA(): string {
+  try {
+    const guardada = localStorage.getItem(STORAGE_KEY_PLANTILLA_RESUMEN)
+    return guardada && guardada.trim() ? guardada : PLANTILLA_RESUMEN_PEDIDO_DEFAULT
+  } catch {
+    return PLANTILLA_RESUMEN_PEDIDO_DEFAULT
+  }
+}
+
+export function setPlantillaResumenWA(texto: string): void {
+  try {
+    if (!texto.trim()) {
+      localStorage.removeItem(STORAGE_KEY_PLANTILLA_RESUMEN)
+    } else {
+      localStorage.setItem(STORAGE_KEY_PLANTILLA_RESUMEN, texto)
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function resetPlantillaResumenWA(): string {
+  try {
+    localStorage.removeItem(STORAGE_KEY_PLANTILLA_RESUMEN)
+  } catch {
+    // ignore
+  }
+  return PLANTILLA_RESUMEN_PEDIDO_DEFAULT
+}
+
+/**
+ * Limpia espacios, guiones, paréntesis y prefijo +57 de cualquier número pegado o escrito
+ */
+export function limpiarTelefonoColombiano(raw: string): string {
+  if (!raw) return ''
+  let digitos = raw.replace(/\D/g, '')
+  if (digitos.length > 10 && digitos.startsWith('57')) {
+    digitos = digitos.slice(2)
+  }
+  return digitos.slice(0, 10)
+}
 
 export function normalizarTextoWA(texto: string): string {
   return texto
@@ -65,10 +156,14 @@ const MAPA_NUMEROS_TEXTO: Record<string, number> = {
 }
 
 const REGEX_PRODUCTOS_GENERAL =
-  /\b(?:hamb|hamburguesa|perro|perra|salchipapa|salchi|chori|picada|minipoli|granpoli|arepa|papa|porcion|chuzo|pechuga|chuleta|costichi|churrasco|patacon|maicito|coca|gaseosa|descarada|ranchera|alitas)[a-z]*\b/i
+  /\b(?:hamb|amburg|burger|burguer|hamburguesa|perro|perra|hot\s*dog|salchipapa|salshipapa|sarchipapa|salchi|chori|shori|picada|minipoli|granpoli|polipicada|arepa|papa|porcion|chuzo|chuso|shuzo|pechuga|peshuga|chuleta|costichi|kostichi|costishi|churrasco|churasco|shurrasco|patacon|patakon|maicito|maisito|maizito|coca|gaseosa|descarada|ranchera|alitas)[a-z]*\b/i
+
+// Soporta formas mal escritas de vías colombianas: karrera, karera, crr, cra, kr, kra, krr, kalle, kll, cll, cl, diag, dg, transv, trasversal, tv, trv, nro, no., num, #, o sin símbolo
+export const REGEX_DIR_COL_GLOBAL =
+  /\b((?:(?:c(?:arrera|arera|arr|rr|ra|r)|k(?:arrera|arera|arr|rr|ra|r)|c(?:alle|aye|all|lle|ll|l)|k(?:alle|aye|all|lle|ll|l)|d(?:iagonal|iago|iag|gn|g)|t(?:ransversal|rasversal|ranversal|ransv|rasv|rv|v|r)|a(?:venida|vda|ve|v))\.?\s+\d+[a-z]?\s*(?:bis)?\s*(?:(?:sur|norte|este|oeste)\s+)?(?:#|nro\.?|no\.?|num\.?|n[uú]mero|n[°º]|\s|-)\s*\d+[a-z]?(?:\s*[-–]\s*\d+|\s+\d+(?!\s*(?:piso|pisos|apto|apartamento|min|minutos|mil)\b))?(?:\s+(?:sur|norte|este|oeste))?)|(?:(?:manzana|manz|mzn|mz)\.?\s*[a-z0-9]+\s*(?:[-–,\s]\s*)?(?:casa|kasa|cs|lote|lt|apto|apartamento|bloque|blq)\.?\s*\d+[a-z0-9]*))\b/i
 
 const REGEX_INICIO_ENTREGA =
-  /\b(?:soy|hablas?\s+con|mi\s+nombre\s+es|a\s+nombre\s+de|recibe\s*[:\-]|cliente\s*[:\-]|para\s+enviar\s+a|enviar\s+a|mandar\s+a|(?:calle|cll|carrera|cra|kr|diagonal|diag|transversal|tv|avenida|av|mz|manzana|vereda)\s+[0-9a-z]+|cel(?:ular)?\s*[:\-]?\s*3\d{2}|tel(?:efono)?\s*[:\-]?\s*\d+)\b/i
+  /\b(?:soy|hablas?\s+con|mi\s+nombre\s+es|a\s+nombre\s+de|recibe\s*[:\-]?|cliente\s*[:\-]?|para\s+enviar\s+a|enviar\s+a|mandar\s+a|es\s+para\s+la|es\s+en\s+la|en\s+la\s+(?:calle|kalle|cll|carrera|karrera|cra|kr)|(?:c(?:arrera|arera|arr|rr|ra|r)|k(?:arrera|arera|arr|rr|ra|r)|c(?:alle|aye|all|lle|ll|l)|k(?:alle|aye|all|lle|ll|l)|d(?:iagonal|iago|iag|gn|g)|t(?:ransversal|rasversal|ranversal|ransv|rasv|rv|v|r)|a(?:venida|vda|ve|v)|manzana|manz|mzn|mz|vereda)\.?\s+[0-9a-z]+|cel(?:ular)?\s*[:\-]?\s*3\d{2}|tel(?:efono)?\s*[:\-]?\s*\d+)\b/i
 
 const REGEX_INICIO_PEDIDO =
   /\b(?:para\s+pedir|quiero\s+pedir|me\s+manda[s]?|mandame|mándame|m[aá]ndeme|me\s+regala[s]?|reg[aá]lame|el\s+pedido\s+es|la\s+orden\s+es|porfa(?:vor)?\s+m[aá]nda(?:me|nos)?|quiero\b)/i
@@ -259,7 +354,7 @@ export function analizarMensajeWhatsApp(
     'o',
   ])
 
-  // Diccionario de sinónimos y alias comunes para emparejar términos coloquiales
+  // Diccionario de sinónimos y alias comunes (incluyendo errores ortográficos frecuentes en WhatsApp)
   const SINONIMOS_PRODUCTOS: Record<string, string[]> = {
     coca: ['coca cola', 'cocacola', 'coca-cola', 'gaseosa'],
     cocacola: ['coca cola', 'coca-cola', 'coca'],
@@ -271,13 +366,43 @@ export function analizarMensajeWhatsApp(
     sprite: ['gaseosa sprite'],
     agua: ['botella de agua', 'agua cristal', 'agua brisa'],
     hamb: ['hamburguesa'],
+    hambur: ['hamburguesa'],
+    amburguesa: ['hamburguesa'],
+    hamburgesa: ['hamburguesa'],
+    amburgesa: ['hamburguesa'],
+    ambur: ['hamburguesa'],
+    burguer: ['hamburguesa', 'arepaburguer'],
+    burger: ['hamburguesa', 'arepaburguer'],
+    arepaburger: ['arepaburguer'],
+    arepahamburguesa: ['arepaburguer'],
     salchi: ['salchipapa'],
+    salshipapa: ['salchipapa'],
+    sarchipapa: ['salchipapa'],
     chori: ['chori papa', 'choripapa', 'chori-papa', 'chori papas'],
     choripapa: ['chori papa', 'chori-papa'],
+    shoripapa: ['chori papa', 'chori-papa'],
     picada: ['minipolipicada', 'granpolipicada'],
+    minipoli: ['minipolipicada'],
+    granpoli: ['granpolipicada'],
+    polipicada: ['minipolipicada', 'granpolipicada'],
     chuzo: ['chuzo de pollo'],
+    chuso: ['chuzo de pollo'],
+    shuzo: ['chuzo de pollo'],
     pechuga: ['pechuga gratinada'],
+    peshuga: ['pechuga gratinada'],
     chuleta: ['chuleta de cerdo'],
+    costichi: ['costichi'],
+    kostichi: ['costichi'],
+    costishi: ['costichi'],
+    churrasco: ['churrasco'],
+    churasco: ['churrasco'],
+    shurrasco: ['churrasco'],
+    patacon: ['patacon'],
+    patakon: ['patacon'],
+    maicito: ['maicitos', 'maicito'],
+    maisito: ['maicitos', 'maicito'],
+    maizito: ['maicitos', 'maicito'],
+    hotdog: ['perro'],
   }
 
   const productosIndexados = todosProductos.map((p) => {
@@ -386,13 +511,13 @@ export function analizarMensajeWhatsApp(
     if (matchNombre) {
       const nombreCandidato = matchNombre[1]
         .replace(
-          /\b(cel|celular|tel|telefono|calle|cra|carrera|cll|barrio|pago|para|en|de\s+la\s+calle|del\s+barrio|mira|es\s+para).*$/i,
+          /\b(cel|celular|tel|telefono|calle|kalle|cll|kll|cl|cra|karrera|karera|carrera|kr|kra|crr|barrio|pago|para|en|de\s+la\s+calle|del\s+barrio|mira|es\s+para).*$/i,
           ''
         )
         .trim()
       if (
         nombreCandidato &&
-        !/\b(hamburguesa|hamb|perro|salchipapa|calle|carrera|cra|cll|mandame|mándame|m[aá]ndeme|regalame|regálame|quiero|pedido|orden|porfa|gracias)\b/i.test(
+        !/\b(hamburguesa|hamb|perro|salchipapa|calle|kalle|carrera|karrera|cra|cll|kr|mandame|mándame|m[aá]ndeme|regalame|regálame|quiero|pedido|orden|porfa|gracias)\b/i.test(
           nombreCandidato
         )
       ) {
@@ -404,7 +529,8 @@ export function analizarMensajeWhatsApp(
         }
         if (
           /^(?:[👤🙋🧑👨👩]?\s*(?:nombre|cliente|a\s+nombre\s+de|recibe))\s*[:\-]?\s*[^,\n]+$/i.test(linea.trim()) &&
-          !/\b(calle|cra|cll|kr|diagonal|transversal|avenida|cel|tel)\b/i.test(linea)
+          !REGEX_DIR_COL_GLOBAL.test(linea) &&
+          !/\b(calle|kalle|cra|karrera|cll|kr|diagonal|transversal|avenida|cel|tel)\b/i.test(linea)
         ) {
           continue
         }
@@ -413,15 +539,14 @@ export function analizarMensajeWhatsApp(
 
     const matchTelLinea = linea.match(/^(?:tel(?:efono|éfono)?|cel(?:ular)?|whatsapp|numero|número)\s*[:\-]?\s*(.+)$/i)
     if (matchTelLinea) {
-      const digitos = matchTelLinea[1].replace(/\D/g, '')
+      const digitos = limpiarTelefonoColombiano(matchTelLinea[1])
       if (digitos.length >= 7) {
-        resultado.telefono = digitos.slice(-10)
+        resultado.telefono = digitos
       }
       continue
     }
 
-    const regexDirCol =
-      /\b((?:calle|cll|carrera|cra|kr|diagonal|diag|transversal|tv|avenida|av)\s+\d+[a-z]?\s*(?:bis)?\s*(?:#|no\.?|num\.?|numero)?\s*\d+[a-z]?\s*(?:-\s*\d+)?(?:\s+(?:sur|norte|este|oeste))?|(?:manzana|mz)\s+[a-z0-9]+\s+(?:casa|lote)\s+\d+)\b/i
+    const regexDirCol = REGEX_DIR_COL_GLOBAL
 
     const matchDir = linea.match(/^(?:direcci[oó]n|dir|entrega en|enviar a|para enviar a)\s*[:\-]?\s*(.+)$/i)
     if (matchDir) {
@@ -461,16 +586,16 @@ export function analizarMensajeWhatsApp(
       continue
     }
 
-    // Si la línea parece una dirección colombiana ("Calle 12 # 4-50", "Cra 8 # 15-20", "Mz B Casa 4", "Vereda ...")
+    // Si la línea parece una dirección colombiana ("Calle 12 # 4-50", "karrera 15 nro 9-34", "Cra 8 # 15-20", "Mz B Casa 4", "Vereda ...")
     const matchDirCol = linea.match(regexDirCol)
     const matchRural = linea.match(/\b(vereda\s+[a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)?)\b/i)
     const pareceDireccion =
       matchDirCol !== null ||
       matchRural !== null ||
-      /\b(calle|cll|carrera|cra|kr|diagonal|diag|transversal|tv|avenida|av|manzana|mz)\s+[0-9a-z]/i.test(
+      /\b(calle|kalle|caye|cll|kll|cl|carrera|karrera|karera|cra|crr|kr|kra|krr|diagonal|diag|dg|transversal|trasversal|tv|trv|avenida|av|manzana|manz|mzn|mz)\.?\s+[0-9a-z]/i.test(
         lNorm
       ) ||
-      /(?:calle|cra|carrera|cll|kr).*#/i.test(lNorm)
+      /(?:calle|kalle|cra|karrera|carrera|cll|kr).*(?:#|\bnro\b|\bno\b|\bnum\b)/i.test(lNorm)
 
     // Pero si la línea TAMBIÉN tiene productos (ej: un párrafo corrido con "dos hamb tocineta... calle 28 # 14-30"),
     // NO debemos saltarla completa con continue; primero se extrae la dirección y se procesan los productos
@@ -933,7 +1058,9 @@ export function analizarMensajeWhatsApp(
       !resultado.nombreCliente &&
       l.length >= 3 &&
       l.length <= 35 &&
-      !/\b(hola|buenas|noches|tardes|dias|gracias|pedido|orden|mandame|mándame|m[aá]ndeme|regalame|regálame|quiero|porfa|favor|efectivo|nequi|bancolombia|transferencia|servicio|tienen|cuanto|demora|mismo|otra\s+vez|siempre)\b/i.test(
+      !/\d{3}/.test(lNorm) &&
+      !REGEX_DIR_COL_GLOBAL.test(lNorm) &&
+      !/\b(hola|buenas|noches|tardes|dias|gracias|pedido|orden|mandame|mándame|m[aá]ndeme|regalame|regálame|quiero|porfa|favor|efectivo|nequi|bancolombia|daviplata|transfiya|breb|transferencia|servicio|tienen|cuanto|demora|mismo|otra\s+vez|siempre|listo|bueno|ok|dale|vale|si|no|ya|espera|senor|señor|vecino|vecina|amigo|amiga)\b/i.test(
         lNorm
       )
     ) {
@@ -961,54 +1088,71 @@ export function generarTextoResumenWhatsApp(params: {
   total: number
   metodoPago?: string
   bancoNombre?: string
+  plantillaOverride?: string
 }): string {
   const fmt = (n: number) => Math.round(n).toLocaleString('es-CO')
-  const lineas: string[] = []
+  const plantilla = params.plantillaOverride ?? getPlantillaResumenWA()
 
-  if (params.consecutivo) {
-    lineas.push(`*POLICHINELO - Pedido #${params.consecutivo}*`)
-  } else {
-    lineas.push(`*POLICHINELO - Confirmación de Pedido*`)
-  }
-
-  lineas.push(`Modalidad: *${params.tipoPedido}*`)
-  if (params.nombreCliente?.trim()) {
-    lineas.push(`Cliente: ${params.nombreCliente.trim()}`)
-  }
-  if (params.direccion?.trim()) {
-    lineas.push(
-      `Dirección: ${params.direccion.trim()}${
-        params.referencia?.trim() ? ` (${params.referencia.trim()})` : ''
-      }`
-    )
-  }
-
-  lineas.push('')
-  lineas.push('*Detalle del pedido:*')
+  const lineasProd: string[] = []
   for (const it of params.items) {
-    lineas.push(`• ${it.cantidad}x ${it.nombre} — $${fmt(it.subtotal)}`)
+    lineasProd.push(`• ${it.cantidad}x ${it.nombre} — $${fmt(it.subtotal)}`)
     if (it.observaciones?.trim()) {
       const obsLimpia = it.observaciones
         .replace(/^\[LIBRE:\s*[^\]]+\]\s*(\|\s*)?/i, '')
         .trim()
       if (obsLimpia) {
-        lineas.push(`   _${obsLimpia}_`)
+        lineasProd.push(`   _${obsLimpia}_`)
       }
     }
   }
 
-  if (params.costoDomicilio && params.costoDomicilio > 0) {
-    lineas.push(`• Domicilio: $${fmt(params.costoDomicilio)}`)
-  }
+  const dirCompleta = params.direccion?.trim()
+    ? `${params.direccion.trim()}${params.referencia?.trim() ? ` (${params.referencia.trim()})` : ''}`
+    : params.referencia?.trim() || ''
 
-  lineas.push('')
+  const textoDomicilio =
+    params.costoDomicilio && params.costoDomicilio > 0
+      ? `• Domicilio: $${fmt(params.costoDomicilio)}`
+      : ''
+
   const infoPago = params.bancoNombre
     ? `${params.metodoPago || 'Transferencia'} (${params.bancoNombre})`
     : params.metodoPago || 'Efectivo'
-  lineas.push(`*TOTAL A PAGAR: $${fmt(params.total)}*`)
-  lineas.push(`Medio de pago: ${infoPago}`)
 
-  return lineas.join('\n')
+  const mapaVars: Record<string, string> = {
+    '{consecutivo}': params.consecutivo ? `#${params.consecutivo}` : '',
+    '{tipo_pedido}': params.tipoPedido || '',
+    '{cliente}': params.nombreCliente?.trim() || '',
+    '{telefono}': params.telefono?.trim() || '',
+    '{direccion}': dirCompleta,
+    '{productos}': lineasProd.join('\n'),
+    '{domicilio}': textoDomicilio,
+    '{total}': fmt(params.total),
+    '{medio_pago}': infoPago,
+  }
+
+  const lineasPlantilla = plantilla.split(/\r?\n/)
+  const lineasResultado: string[] = []
+
+  for (const linea of lineasPlantilla) {
+    // Si la línea contiene un placeholder opcional ({cliente}, {telefono}, {direccion}, {domicilio}, {consecutivo})
+    // y el valor de ese placeholder está vacío, omitimos la línea para no dejar etiquetas vacías
+    const placeholdersEnLinea = linea.match(/\{(consecutivo|cliente|telefono|direccion|domicilio)\}/g)
+    if (
+      placeholdersEnLinea &&
+      placeholdersEnLinea.every((ph) => !mapaVars[ph] || !mapaVars[ph].trim())
+    ) {
+      continue
+    }
+
+    let lineaReemplazada = linea
+    for (const [clave, valor] of Object.entries(mapaVars)) {
+      lineaReemplazada = lineaReemplazada.split(clave).join(valor)
+    }
+    lineasResultado.push(lineaReemplazada)
+  }
+
+  return lineasResultado.join('\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 export function generarTextoResumenDesdeTicket(datos: DatosComandaCocina): string {

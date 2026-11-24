@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { TipoPedido } from '@/types/pos/pos'
+import { limpiarTelefonoColombiano } from '@/utils/whatsappPos.utils'
 
 export interface UltimoPedidoCliente {
   id: number
@@ -31,7 +32,7 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
   }, [tipoPedido])
 
   const buscarClientePorNumero = async (telRaw: string) => {
-    const telLimpio = telRaw.trim()
+    const telLimpio = limpiarTelefonoColombiano(telRaw)
     if (telLimpio.length >= 7 && window.electronAPI?.getClienteByTelefono) {
       try {
         const cliente = await window.electronAPI.getClienteByTelefono(telLimpio)
@@ -56,41 +57,53 @@ export const usePosCliente = (tipoPedido: TipoPedido) => {
     }
   }
 
-  // Búsqueda automática reactiva al digitar teléfono en DOMICILIO (sin requerir Enter físico)
+  // Búsqueda automática reactiva al digitar o pegar teléfono en DOMICILIO (sin requerir Enter físico)
   useEffect(() => {
     if (tipoPedido !== 'DOMICILIO') return
 
-    const soloDigitos = telefono.replace(/\D/g, '')
+    const soloDigitos = limpiarTelefonoColombiano(telefono)
     if (soloDigitos.length < 7) {
       setClienteExiste(null)
       setUltimoPedidoCliente(null)
       return
     }
 
+    // Si el estado tenía espacios o +57, lo normalizamos de inmediato
+    if (telefono !== soloDigitos) {
+      setTelefono(soloDigitos)
+      return
+    }
+
     // Si completó los 10 dígitos de un celular colombiano, buscar de inmediato
-    const delayMs = soloDigitos.length === 10 ? 80 : 400
+    const delayMs = soloDigitos.length === 10 ? 50 : 350
     const timer = setTimeout(() => {
-      buscarClientePorNumero(telefono)
+      buscarClientePorNumero(soloDigitos)
     }, delayMs)
 
     return () => clearTimeout(timer)
   }, [telefono, tipoPedido])
 
   const handleTelefonoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const valor = e.target.value
-    setTelefono(valor)
-    if (!valor.trim()) setClienteExiste(null)
+    const valorLimpio = limpiarTelefonoColombiano(e.target.value)
+    setTelefono(valorLimpio)
+    if (!valorLimpio) {
+      setClienteExiste(null)
+      setUltimoPedidoCliente(null)
+    }
   }
 
   const handleBuscarCliente = async () => {
-    await buscarClientePorNumero(telefono)
+    const limpio = limpiarTelefonoColombiano(telefono)
+    if (limpio !== telefono) setTelefono(limpio)
+    await buscarClientePorNumero(limpio)
   }
 
   const guardarClienteAlCobrar = async () => {
-    if (telefono.trim() && nombreCliente.trim() && window.electronAPI?.upsertCliente) {
+    const telLimpio = limpiarTelefonoColombiano(telefono)
+    if (telLimpio && nombreCliente.trim() && window.electronAPI?.upsertCliente) {
       try {
         await window.electronAPI.upsertCliente({
-          telefono: telefono.trim(),
+          telefono: telLimpio,
           nombre: nombreCliente.trim(),
           direccion: direccionCliente.trim(),
           referenciaDireccion: referenciaCliente.trim(),

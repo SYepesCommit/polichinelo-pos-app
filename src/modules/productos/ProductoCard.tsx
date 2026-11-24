@@ -125,14 +125,19 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({
         <button
           type="button"
           onClick={() => onToggleActivo(prod)}
+          title={
+            prod.activo
+              ? 'Clic para desactivar este producto temporalmente de la caja'
+              : 'Clic para volver a activar este producto en la caja'
+          }
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase border transition active:scale-95 shadow-sm ${
             prod.activo
-              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/25'
-              : 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:bg-rose-500/25'
+              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-amber-500/20 hover:text-amber-300 hover:border-amber-500/40'
+              : 'bg-amber-500/15 text-amber-300 border-amber-500/35 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/40'
           }`}
         >
           <Power className="w-3 h-3" />
-          <span>{prod.activo ? 'Disponible' : 'Agotado'}</span>
+          <span>{prod.activo ? 'Activo (Desactivar)' : 'Desactivado (Activar)'}</span>
         </button>
 
         <div className="flex items-center gap-1">
@@ -155,8 +160,8 @@ export const ProductoCard: React.FC<ProductoCardProps> = ({
           <button
             type="button"
             onClick={() => onEliminar(prod)}
-            className="p-2 text-slate-400 hover:text-rose-400 bg-slate-950 border border-slate-800 rounded-xl transition active:scale-95"
-            title="Eliminar Producto"
+            className="p-2 text-slate-400 hover:text-rose-400 bg-slate-950 border border-slate-800 hover:border-rose-500/40 rounded-xl transition active:scale-95"
+            title="Eliminar producto definitivamente del catálogo"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

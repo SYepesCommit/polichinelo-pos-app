@@ -51,7 +51,7 @@ export const ProductosKpis: React.FC<ProductosKpisProps> = ({
         }`}
       >
         <div>
-          <span className="text-[10px] font-extrabold uppercase tracking-wider block">Agotados</span>
+          <span className="text-[10px] font-extrabold uppercase tracking-wider block">Desactivados</span>
           <span className="text-xl font-black text-rose-400">{kpis.agotados}</span>
         </div>
         <XCircle className="w-5 h-5 opacity-60 text-rose-400" />
